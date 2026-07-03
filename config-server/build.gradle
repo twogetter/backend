@@ -1,0 +1,29 @@
+apply plugin: 'org.springframework.boot'
+
+dependencies {
+    implementation 'org.springframework.cloud:spring-cloud-config-server'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // implementation 'org.springframework.cloud:spring-cloud-starter-bus-kafka'
+}
+
+bootRun {
+    doFirst {
+        def envFile = rootProject.file('.env')
+
+        if (envFile.exists()) {
+            envFile.readLines().each { line ->
+                if (line.trim() && !line.startsWith('#')) {
+                    def parts = line.split('=', 2)
+                    if (parts.length == 2) {
+                        def key = parts[0].trim()
+                        def value = parts[1].trim()
+                        environment(key, value)
+                        systemProperty(key, value)
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.register("prepareKotlinBuildScriptModel"){}
