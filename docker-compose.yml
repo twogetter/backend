@@ -4,7 +4,91 @@ networks:
   bubbletea-net:
     driver: bridge
 
+volumes:
+  postgres-data:
+  mongo-data:
+  redis-data:
+
 services:
+
+  postgres:
+    image: postgres:17
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [ bubbletea-net ]
+
+  mongodb:
+    image: mongo:8
+    env_file:
+      - .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [ bubbletea-net ]
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [ bubbletea-net ]
+
+  kafka:
+    image: confluentinc/cp-kafka:7.8.0
+    container_name: bubbletea-kafka
+    ports:
+      - "9092:9092"    # 호스트(PC)에서 접근하는 포트
+      - "9094:9094"    # 컨테이너 내부 전용 리스너
+    environment:
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@localhost:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9094,CONTROLLER://0.0.0.0:9093,HOST://0.0.0.0:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://bubbletea-kafka:9094,HOST://localhost:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,HOST:PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost 9092 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [ bubbletea-net ]
+
   config-server:
     build: {
       context: .,
@@ -74,6 +158,7 @@ services:
     depends_on:
       config-server: { condition: service_healthy }
       eureka-server: { condition: service_healthy }
+      postgres:      { condition: service_healthy }
     networks: [ bubbletea-net ]
 
   user-service:
@@ -89,6 +174,7 @@ services:
     depends_on:
       config-server: { condition: service_healthy }
       eureka-server: { condition: service_healthy }
+      postgres:      { condition: service_healthy }
     networks: [ bubbletea-net ]
 
   product-service:
@@ -104,6 +190,7 @@ services:
     depends_on:
       config-server: { condition: service_healthy }
       eureka-server: { condition: service_healthy }
+      mongodb:       { condition: service_healthy }
     networks: [ bubbletea-net ]
 
   payment-service:
@@ -119,6 +206,8 @@ services:
     depends_on:
       config-server: { condition: service_healthy }
       eureka-server: { condition: service_healthy }
+      postgres:      { condition: service_healthy }
+      redis:         { condition: service_healthy }
     networks:
       - bubbletea-net
 
@@ -135,6 +224,7 @@ services:
     depends_on:
       config-server: { condition: service_healthy }
       eureka-server: { condition: service_healthy }
+      postgres:      { condition: service_healthy }
     networks:
       - bubbletea-net
 
@@ -151,8 +241,8 @@ services:
     depends_on:
       config-server: { condition: service_healthy }
       eureka-server: { condition: service_healthy }
+      postgres:      { condition: service_healthy }
     networks: [ bubbletea-net ]
-
 
   chat-service:
     build: {
@@ -167,10 +257,8 @@ services:
     depends_on:
       config-server: { condition: service_healthy }
       eureka-server: { condition: service_healthy }
+      postgres:      { condition: service_healthy }
+      redis:         { condition: service_healthy }
     networks: [ bubbletea-net ]
-
-
-
-
 
 
