@@ -4,6 +4,23 @@ spring:
   config:
     import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
 
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:paymentdb}
+    username: ${POSTGRES_USER:payment_user}
+    password: ${POSTGRES_PASSWORD:payment_pass}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+    defer-datasource-initialization: true
+
+#  sql:
+#    init:
+#      mode: always
+
 eureka:
   client:
     service-url:
