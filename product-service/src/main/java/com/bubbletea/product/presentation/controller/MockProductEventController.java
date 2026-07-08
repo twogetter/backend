@@ -21,36 +21,43 @@ public class MockProductEventController {
     private final ProductScheduleNotificationService productScheduleNotificationService;
 
     private static final String productName = "김연옌 1개월 구독권";
-    private static final LocalDateTime targetDate = LocalDateTime.now().plusDays(3);
 
     @PostMapping("/register")
     public ResponseEntity<Void> mockEvent() {
         String artistId = "1";
-        productChatEventService.productRegistered(artistId, targetDate);
+        productChatEventService.productRegistered(artistId, LocalDateTime.now());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/open")
     public ResponseEntity<Void> mockOpenEvent() {
-        productScheduleNotificationService.notifyOpenSchedule(productName, targetDate);
+        productScheduleNotificationService.notifyOpenSchedule(productName,
+            LocalDateTime.now().plusDays(3)
+        );
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/deactivate")
     public ResponseEntity<Void> mockDeactivateEvent() {
-        productScheduleNotificationService.notifyDeactivationSchedule(productName, targetDate);
+        productScheduleNotificationService.notifyDeactivationSchedule(
+            productName, LocalDateTime.now().plusDays(3)
+        );
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/activate")
     public ResponseEntity<Void> mockActivateEvent() {
-        productScheduleNotificationService.notifyActivationSchedule(productName, targetDate);
+        productScheduleNotificationService.notifyActivationSchedule(
+            productName, LocalDateTime.now().plusDays(3)
+        );
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/delete")
     public ResponseEntity<Void> mockDeleteEvent() {
-        productScheduleNotificationService.notifyDeletionSchedule(productName, targetDate);
+        productScheduleNotificationService.notifyDeletionSchedule(
+            productName, LocalDateTime.now().plusDays(3)
+        );
         return ResponseEntity.ok().build();
     }
 
@@ -59,7 +66,7 @@ public class MockProductEventController {
         int originPrice = 5900;
         int changePrice = 6900;
         productScheduleNotificationService.notifyPriceChangeSchedule(
-            productName, targetDate, originPrice, changePrice
+            productName, LocalDateTime.now().plusDays(3), originPrice, changePrice
         );
         return ResponseEntity.ok().build();
     }
