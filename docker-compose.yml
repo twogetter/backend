@@ -89,6 +89,18 @@ services:
       retries: 5
     networks: [ bubbletea-net ]
 
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: bubbletea-kafka-ui
+    ports:
+      - "8989:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: bubbletea-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: bubbletea-kafka:9094
+    depends_on:
+      - kafka
+    networks: [ bubbletea-net ]
+
   config-server:
     build: {
       context: .,
