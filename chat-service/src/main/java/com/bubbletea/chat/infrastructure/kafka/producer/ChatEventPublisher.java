@@ -1,5 +1,6 @@
 package com.bubbletea.chat.infrastructure.kafka.producer;
 
+import com.bubbletea.chat.domain.event.ChatPublishedEvent;
 import com.bubbletea.chat.infrastructure.kafka.config.ChatKafkaTopics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

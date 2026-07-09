@@ -1,4 +1,4 @@
-package com.bubbletea.chat.infrastructure.kafka.producer;
+package com.bubbletea.chat.domain.event;
 
 import com.bubbletea.chat.domain.enums.MessageType;
 import java.time.LocalDateTime;
