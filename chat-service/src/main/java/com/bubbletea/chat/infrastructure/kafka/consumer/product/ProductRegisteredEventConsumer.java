@@ -22,6 +22,7 @@ public class ProductRegisteredEventConsumer {
       // TODO: application Layer 연결
     } catch (Exception e) {
       log.error("[Kafka 수신 실패] : {}", message, e);
+      throw new RuntimeException(e);
     }
   }
 }

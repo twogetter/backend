@@ -22,6 +22,7 @@ public class OrderExpiredEventConsumer {
       // TODO: 추후 비즈니스 서비스 연동
     } catch (Exception e) {
       log.error("[Kafka 수신 실패] : {}", message, e);
+      throw new RuntimeException(e);
     }
   }
 }
