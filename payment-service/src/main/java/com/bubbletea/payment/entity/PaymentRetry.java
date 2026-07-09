@@ -13,10 +13,14 @@ import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
-@Table(name = "payment_retries")
 @Getter
+@Table(name = "payment_retries")
+@SQLDelete(sql = "UPDATE payment_retries SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PaymentRetry extends BaseEntity {
     @Id
@@ -38,4 +42,5 @@ public class PaymentRetry extends BaseEntity {
     private String lastErrorMessage;
     private LocalDateTime nextRetryAt;
     private String status;
+    private LocalDateTime deletedAt;
 }
