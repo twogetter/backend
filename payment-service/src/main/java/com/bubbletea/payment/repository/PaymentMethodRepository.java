@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, Long> {
-    List<PaymentMethod> findAllByUserId(Long userId);
+    List<PaymentMethod> findAllByUserBrandpayAuth_UserId(Long userBrandpayAuthUserId);
 }
