@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>결제수단 관리</title>
+    <!-- 토스페이먼츠 V2 SDK -->
+    <script src="https://js.tosspayments.com/v2/standard"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .button {
+            padding: 12px 24px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background-color: #0066ff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0052cc;
+        }
+        .btn-secondary {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 30px 0;
+        }
+        .section {
+            padding: 30px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .status.connected {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status.disconnected {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🛒 결제수단 관리</h1>
+    <p style="text-align: center; color: #666;">자주 사용하는 카드나 계좌를 등록해 두세요</p>
+
+    <!-- 1단계: Toss 연결 -->
+    <div class="section">
+        <h2>1️⃣ Toss와 연결</h2>
+        <p>먼저 Toss Brandpay와 연결하여 Access Token을 발급받으세요.</p>
+        <div id="connection-status" class="status disconnected">
+            ❌ Toss와 연결되지 않음
+        </div>
+        <div class="button-group">
+            <button class="button btn-primary" id="connect-btn">🔗 Toss와 연결하기</button>
+        </div>
+    </div>
+
+    <!-- 2단계: 결제 수단 추가 -->
+    <div class="section">
+        <h2>2️⃣ 결제 수단 추가</h2>
+        <p>카드 또는 계좌를 등록하세요.</p>
+        <div class="button-group">
+            <button class="button btn-primary" id="add-payment-btn" disabled>➕ 결제 수단 추가</button>
+        </div>
+    </div>
+
+    <!-- 결제 수단 목록 -->
+    <div class="section">
+        <h2>📋 등록된 결제 수단</h2>
+        <div id="payment-methods-list">
+            <p style="color: #999; text-align: center;">등록된 결제 수단이 없습니다</p>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript 핸들러 로드 -->
+<script src="/js/brandpay-payment-manager.js"></script>
+
+<script>
+    // ==========================================
+    // 초기 설정값 (환경에 따라 수정)
+    // ==========================================
+    const CLIENT_KEY = "test_ck_Z61JOxRQVEB4Z5EYoWJwrW0X9bAq";  // 프로덕션: 실제 Client Key 사용
+    const CUSTOMER_KEY = "MEMBER_TEST_12345";                     // 프로덕션: 로그인한 사용자의 고유 ID
+    const USER_ID = 1;                                            // 프로덕션: 로그인한 사용자의 ID
+
+    // ==========================================
+    // BrandpayPaymentManager 인스턴스 생성
+    // ==========================================
+    const brandpayManager = new BrandpayPaymentManager(CLIENT_KEY, CUSTOMER_KEY, USER_ID);
+
+    // ==========================================
+    // 1단계: Toss 연결 버튼
+    // ==========================================
+    document.getElementById("connect-btn").addEventListener("click", async () => {
+        await brandpayManager.handleConnectBrandpay();
+    });
+
+    // ==========================================
+    // 2단계: 결제 수단 추가 버튼
+    // ==========================================
+    document.getElementById("add-payment-btn").addEventListener("click", async () => {
+        await brandpayManager.handleAddPaymentMethod();
+    });
+
+    // ==========================================
+    // URL에서 code 파라미터 확인 (콜백 처리)
+    // ==========================================
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const customerKeyFromUrl = urlParams.get('customerKey');
+
+    if (code && customerKeyFromUrl === CUSTOMER_KEY) {
+        console.log("🔄 콜백 감지, code로 Access Token 교환 중...");
+        
+        brandpayManager.handleBrandpayCallback(code)
+            .then(() => {
+                // 콜백 완료 후 상태 업데이트
+                updateConnectionStatus(true);
+                
+                // URL 깔끔하게 정리 (선택사항)
+                window.history.replaceState({}, document.title, window.location.pathname);
+            })
+            .catch((error) => {
+                console.error("콜백 처리 실패:", error);
+                updateConnectionStatus(false);
+            });
+    }
+
+    // ==========================================
+    // 연결 상태 업데이트
+    // ==========================================
+    function updateConnectionStatus(isConnected) {
+        const statusEl = document.getElementById("connection-status");
+        const addPaymentBtn = document.getElementById("add-payment-btn");
+        
+        if (isConnected) {
+            statusEl.textContent = "✅ Toss와 연결됨";
+            statusEl.className = "status connected";
+            addPaymentBtn.disabled = false;
+        } else {
+            statusEl.textContent = "❌ Toss와 연결되지 않음";
+            statusEl.className = "status disconnected";
+            addPaymentBtn.disabled = true;
+        }
+    }
+
+    // ==========================================
+    // 결제 수단 목록 로드 (선택사항)
+    // ==========================================
+    async function loadPaymentMethods() {
+        try {
+            const methods = await brandpayManager.getPaymentMethods();
+            const listEl = document.getElementById("payment-methods-list");
+            
+            if (methods.length === 0) {
+                listEl.innerHTML = '<p style="color: #999; text-align: center;">등록된 결제 수단이 없습니다</p>';
+                return;
+            }
+
+            listEl.innerHTML = methods.map(method => `
+                <div style="padding: 10px; border-bottom: 1px solid #eee;">
+                    <strong>${method.displayName}</strong>
+                    <br />
+                    <small>${method.maskedNumber}</small>
+                    <span style="float: right; font-size: 12px; color: #999;">
+                        ${method.isDefault ? '기본' : ''}
+                    </span>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error("결제 수단 목록 로드 실패:", error);
+        }
+    }
+
+    // 페이지 로드 시 결제 수단 목록 로드
+    loadPaymentMethods();
+
+    // ==========================================
+    // 커스텀 이벤트 리스너 (결제 수단 등록 후)
+    // ==========================================
+    window.addEventListener('paymentMethodRegistered', () => {
+        console.log("결제 수단 등록 완료, 목록 새로고침");
+        loadPaymentMethods();
+    });
+</script>
+
+</body>
+</html>
+
