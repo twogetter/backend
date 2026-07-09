@@ -13,8 +13,8 @@ import com.bubbletea.payment.service.dto.ConnectBrandpayRequestDto;
 import com.bubbletea.payment.service.dto.ConnectBrandpayResponseDto;
 import com.bubbletea.payment.service.dto.PaymentMethodResponseDto;
 import com.bubbletea.payment.service.external.TossBrandpayApiClient;
-import com.bubbletea.payment.service.dto.TossAccessTokenResponse;
-import com.bubbletea.payment.service.dto.TossRegisteredPaymentMethodsResponse;
+import com.bubbletea.payment.service.dto.TossAccessTokenResponseDto;
+import com.bubbletea.payment.service.dto.TossRegisteredPaymentMethodsResponseDto;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +53,7 @@ public class BrandpayService {
         logger.info("Connecting Brandpay for user: {}, customerKey: {}", request.userId(), request.customerKey());
 
         try {
-            TossAccessTokenResponse tokenResponse = tossBrandpayApiClient.getAccessToken(request.customerKey(), request.code());
+            TossAccessTokenResponseDto tokenResponse = tossBrandpayApiClient.getAccessToken(request.customerKey(), request.code());
 
             if (tokenResponse == null || tokenResponse.error() != null) {
                 logger.error("Toss API Error: {}", tokenResponse);
@@ -102,7 +102,7 @@ public class BrandpayService {
 
     @Transactional
     public void syncPaymentMethods(UserBrandpayAuth userBrandpayAuth) throws Exception {
-        TossRegisteredPaymentMethodsResponse methodResponse = tossBrandpayApiClient.getRegisteredPaymentMethods(userBrandpayAuth.getAccessToken());
+        TossRegisteredPaymentMethodsResponseDto methodResponse = tossBrandpayApiClient.getRegisteredPaymentMethods(userBrandpayAuth.getAccessToken());
 
         if (methodResponse == null || methodResponse.error() != null) {
             logger.error("Failed to load Brandpay payment methods: {}", methodResponse);
@@ -110,8 +110,8 @@ public class BrandpayService {
                     methodResponse == null ? "등록된 결제수단을 조회하지 못했습니다" : methodResponse.message());
         }
 
-        List<TossRegisteredPaymentMethodsResponse.Card> cards = methodResponse.cards();
-        List<TossRegisteredPaymentMethodsResponse.Account> accounts = methodResponse.accounts();
+        List<TossRegisteredPaymentMethodsResponseDto.Card> cards = methodResponse.cards();
+        List<TossRegisteredPaymentMethodsResponseDto.Account> accounts = methodResponse.accounts();
         String selectedMethodId = methodResponse.selectedMethodId();
 
         // 1. 토스 API 응답으로부터 저장할 임시 객체 리스트 생성
@@ -176,9 +176,9 @@ public class BrandpayService {
                 .toList();
     }
 
-    private List<PaymentMethod> mapCardMethods(UserBrandpayAuth userBrandpayAuth, List<TossRegisteredPaymentMethodsResponse.Card> cards, String selectedMethodId) {
+    private List<PaymentMethod> mapCardMethods(UserBrandpayAuth userBrandpayAuth, List<TossRegisteredPaymentMethodsResponseDto.Card> cards, String selectedMethodId) {
         List<PaymentMethod> methods = new ArrayList<>();
-        for (TossRegisteredPaymentMethodsResponse.Card card : cards) {
+        for (TossRegisteredPaymentMethodsResponseDto.Card card : cards) {
             if (card == null) continue;
 
             String methodKey = card.methodKey();
@@ -200,9 +200,9 @@ public class BrandpayService {
         return methods;
     }
 
-    private List<PaymentMethod> mapAccountMethods(UserBrandpayAuth userBrandpayAuth, List<TossRegisteredPaymentMethodsResponse.Account> accounts, String selectedMethodId) {
+    private List<PaymentMethod> mapAccountMethods(UserBrandpayAuth userBrandpayAuth, List<TossRegisteredPaymentMethodsResponseDto.Account> accounts, String selectedMethodId) {
         List<PaymentMethod> methods = new ArrayList<>();
-        for (TossRegisteredPaymentMethodsResponse.Account account : accounts) {
+        for (TossRegisteredPaymentMethodsResponseDto.Account account : accounts) {
             if (account == null) continue;
 
             String methodKey = account.methodKey();

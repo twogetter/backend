@@ -1,16 +1,13 @@
 package com.bubbletea.payment.service.external;
 
-import com.bubbletea.payment.service.dto.TossAccessTokenResponse;
-import com.bubbletea.payment.service.dto.TossRegisteredPaymentMethodsResponse;
+import com.bubbletea.payment.service.dto.TossAccessTokenResponseDto;
+import com.bubbletea.payment.service.dto.TossRegisteredPaymentMethodsResponseDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.RequestEntity;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
@@ -31,7 +28,7 @@ public class TossBrandpayApiClient {
     private final RestClient restClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public TossAccessTokenResponse getAccessToken(String customerKey, String code) throws Exception {
+    public TossAccessTokenResponseDto getAccessToken(String customerKey, String code) throws Exception {
         Map<String, Object> requestData = new HashMap<>();
         requestData.put("grantType", "AuthorizationCode");
         requestData.put("customerKey", customerKey);
@@ -44,17 +41,17 @@ public class TossBrandpayApiClient {
                     .uri(url)
                     .body(requestData)
                     .retrieve()
-                    .body(TossAccessTokenResponse.class);
+                    .body(TossAccessTokenResponseDto.class);
         } catch (RestClientResponseException e) {
             try {
-                return objectMapper.readValue(e.getResponseBodyAsString(), TossAccessTokenResponse.class);
+                return objectMapper.readValue(e.getResponseBodyAsString(), TossAccessTokenResponseDto.class);
             } catch (Exception ex) {
-                return new TossAccessTokenResponse(null, null, "HTTP_ERROR", e.getMessage());
+                return new TossAccessTokenResponseDto(null, null, "HTTP_ERROR", e.getMessage());
             }
         }
     }
 
-    public TossRegisteredPaymentMethodsResponse getRegisteredPaymentMethods(String accessToken) throws Exception {
+    public TossRegisteredPaymentMethodsResponseDto getRegisteredPaymentMethods(String accessToken) throws Exception {
         String url = BRANDPAY_API_BASE_URL + "/payments/methods";
         logger.info("Toss API Request: GET {}", url);
 
@@ -66,12 +63,12 @@ public class TossBrandpayApiClient {
                         headers.setContentType(MediaType.APPLICATION_JSON);
                     })
                     .retrieve()
-                    .body(TossRegisteredPaymentMethodsResponse.class);
+                    .body(TossRegisteredPaymentMethodsResponseDto.class);
         } catch (RestClientResponseException e) {
             try {
-                return objectMapper.readValue(e.getResponseBodyAsString(), TossRegisteredPaymentMethodsResponse.class);
+                return objectMapper.readValue(e.getResponseBodyAsString(), TossRegisteredPaymentMethodsResponseDto.class);
             } catch (Exception ex) {
-                return new TossRegisteredPaymentMethodsResponse(null, null, null, "HTTP_ERROR", e.getMessage());
+                return new TossRegisteredPaymentMethodsResponseDto(null, null, null, "HTTP_ERROR", e.getMessage());
             }
         }
     }
