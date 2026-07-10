@@ -41,8 +41,9 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+      - ./docker/mongo-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping')\" || exit 1"]
+      test: ["CMD-SHELL", "mongosh --host localhost --port 27017 -u product_user -p product_pass --authenticationDatabase productdb --eval \"db.adminCommand('ping')\" || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 10
