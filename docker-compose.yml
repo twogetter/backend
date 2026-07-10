@@ -37,17 +37,36 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
       - ./docker/mongo-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --host localhost --port 27017 -u product_user -p product_pass --authenticationDatabase productdb --eval \"db.adminCommand('ping')\" || exit 1"]
+      test: ["CMD-SHELL", "mongosh --host localhost --port 27017 -u product_user -p $MONGO_APP_PASSWORD --authenticationDatabase productdb --eval \"db.adminCommand('ping')\" || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 30s
+    networks: [ bubbletea-net ]
+
+  mongo-init:
+    image: mongo:8
+    depends_on:
+      mongodb: { condition: service_healthy }
+    environment:
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
+    volumes:
+      - ./docker/mongo-init:/scripts
+    command: >
+      mongosh --host mongodb --port 27017
+      -u ${MONGO_ROOT_USERNAME} -p ${MONGO_ROOT_PASSWORD}
+      --authenticationDatabase admin
+      /scripts/init.js
+    restart: "no"
     networks: [ bubbletea-net ]
 
   redis:
