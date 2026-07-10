@@ -5,19 +5,8 @@ spring:
     import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    consumer:
-      group-id: ${NOTIFICATION_KAFKA_GROUP_ID:notification-service}
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    listener:
-      missing-topics-fatal: false
 
 eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
-
-notification:
-  kafka:
-    topic: ${NOTIFICATION_KAFKA_TOPIC:notification-events}
