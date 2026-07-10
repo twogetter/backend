@@ -14,5 +14,6 @@ try {
     print('ℹ️ 유저가 이미 존재 - 스킵');
   } else {
     print(`❌ 유저 생성 실패: ${e.message}`);
+    quit(1);
   }
 }
