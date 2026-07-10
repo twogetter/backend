@@ -1,4 +1,4 @@
-package com.bubbletea.product.kafka;
+package com.bubbletea.product.infrastructure.kafka;
 
 import com.bubbletea.product.domain.event.ProductEvent;
 import com.bubbletea.product.domain.event.ProductEventPublisher;
