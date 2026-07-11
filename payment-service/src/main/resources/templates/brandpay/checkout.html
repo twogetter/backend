@@ -31,7 +31,7 @@
 
       const brandpay = tossPayments.brandpay({
         customerKey,
-        redirectUrl: [[${redirectUrl}]] + "?userId=" + [[${userId}]]
+        redirectUrl: [[${redirectUrl}]] + "/callback-auth?userId=" + [[${userId}]]
       });
 
       async function requestPayment() {
@@ -76,7 +76,11 @@
       async function requestBillingAuth() {
         try {
           await brandpay.requestBillingAuth();
-          const response = await fetch("http://localhost:8300/brandpay/billing-auth/success", {
+
+          const baseUrl = [[${redirectUrl}]];
+
+          // const response = await fetch("http://localhost:8300/brandpay/billing-auth/success", {
+          const response = await fetch(`${baseUrl}/billing-auth/success`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ customerKey: customerKey })
