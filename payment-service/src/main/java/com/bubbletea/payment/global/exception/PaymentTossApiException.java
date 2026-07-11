@@ -2,15 +2,13 @@ package com.bubbletea.payment.global.exception;
 
 import com.bubbletea.common.exception.AppException;
 import com.bubbletea.common.exception.ErrorCode;
-import lombok.Getter;
 
-@Getter
-public class PaymentException extends AppException {
-    public PaymentException(ErrorCode errorCode) {
+public class PaymentTossApiException extends AppException {
+    public PaymentTossApiException(ErrorCode errorCode) {
         super(errorCode);
     }
 
-    public PaymentException(ErrorCode errorCode, String message) {
+    public PaymentTossApiException(ErrorCode errorCode, String message) {
         super(errorCode, message);
     }
 }
