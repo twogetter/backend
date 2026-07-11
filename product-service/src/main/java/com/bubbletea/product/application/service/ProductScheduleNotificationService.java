@@ -22,11 +22,13 @@ public class ProductScheduleNotificationService {
     }
 
     public void notifyDeactivationSchedule(String productName, LocalDateTime deactivationDate) {
-        productEventPublisher.publish(new ProductDeactivationScheduledEvent(productName, deactivationDate));
+        productEventPublisher.publish(
+            new ProductDeactivationScheduledEvent(productName, deactivationDate));
     }
 
     public void notifyActivationSchedule(String productName, LocalDateTime activationDate) {
-        productEventPublisher.publish(new ProductActivationScheduledEvent(productName, activationDate));
+        productEventPublisher.publish(
+            new ProductActivationScheduledEvent(productName, activationDate));
     }
 
     public void notifyDeletionSchedule(String productName, LocalDateTime deletionDate) {

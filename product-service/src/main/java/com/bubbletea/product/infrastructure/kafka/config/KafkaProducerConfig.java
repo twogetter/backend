@@ -1,4 +1,4 @@
-package com.bubbletea.product.kafka.config;
+package com.bubbletea.product.infrastructure.kafka.config;
 
 import java.util.HashMap;
 import java.util.Map;
