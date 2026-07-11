@@ -2,32 +2,20 @@ package com.bubbletea.payment.controller.web;
 
 import com.bubbletea.payment.service.BrandpayService;
 import com.bubbletea.payment.service.dto.BrandpayAuthDetailResponseDto;
-import com.bubbletea.payment.service.dto.ConnectBrandpayRequestDto;
-import com.bubbletea.payment.service.dto.ConnectBrandpayResponseDto;
-import com.bubbletea.payment.global.exception.PaymentException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,8 +26,6 @@ public class ViewController {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-//    private static final String WIDGET_SECRET_KEY = "test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6";
-//    private static final String API_SECRET_KEY = "test_sk_Poxy1XQL8RPedGKvOOvYV7nO5Wml";
     @Value("${toss.payments.client-key}")
     private String CLIENT_KEY;
 //    @Value("${toss.payments.widget-secret-key}")
@@ -87,30 +73,6 @@ public class ViewController {
 //        model.addAttribute("customerEmail", "customer123@gmail.com");
 
         return "widget/index";
-    }
-
-    @RequestMapping(value = "/callback-auth", method = RequestMethod.GET)
-    public ResponseEntity<?> callbackAuth(@RequestParam Long userId, @RequestParam String customerKey, @RequestParam String code) throws IOException {
-        try {
-            ConnectBrandpayResponseDto response = brandPayService.connectBrandpay(
-                    ConnectBrandpayRequestDto.builder()
-                            .userId(userId)
-                            .customerKey(customerKey)
-                            .code(code)
-                            .build()
-            );
-            return ResponseEntity.ok(response);
-        } catch (PaymentException e) {
-            logger.error("PaymentException in callbackAuth", e);
-            JSONObject error = new JSONObject();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(400).body(error);
-        } catch (Exception e) {
-            logger.error("Unexpected error in callbackAuth", e);
-            JSONObject error = new JSONObject();
-            error.put("error", "Internal server error");
-            return ResponseEntity.status(500).body(error);
-        }
     }
 
 //    @RequestMapping(value = {"/confirm/widget", "/confirm/payment"})
