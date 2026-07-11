@@ -1,40 +1,35 @@
 package com.bubbletea.payment.service;
 
-import com.bubbletea.payment.entity.enums.PaymentMethodType;
-import com.bubbletea.payment.entity.enums.PaymentMethodStatus;
-import com.bubbletea.payment.service.dto.PaymentMethodResponseDto;
-import java.util.List;
+import com.bubbletea.common.exception.AppException;
+import com.bubbletea.payment.entity.PaymentMethod;
+import com.bubbletea.payment.entity.UserBrandpayAuth;
+import com.bubbletea.payment.global.exception.PaymentErrorCode;
+import com.bubbletea.payment.repository.PaymentMethodRepository;
+import com.bubbletea.payment.repository.UserBrandpayAuthRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class PaymentMethodService {
 
-//    private final PaymentMethodRepository paymentMethodRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final UserBrandpayAuthRepository userBrandpayAuthRepository;
 
-    public List<PaymentMethodResponseDto> getPaymentMethods(Long userId) {
+    @Transactional
+    public void updatePaymentMethodBilling(Long paymentMethodId, Long userid) {
+        UserBrandpayAuth auth = userBrandpayAuthRepository.findByUserId(userid)
+                .orElseThrow(() -> new AppException(PaymentErrorCode.USER_BRANDPAY_AUTH_NOT_FOUND));
 
-        List<PaymentMethodResponseDto> res = List.of(PaymentMethodResponseDto.builder()
-                .id(1L)
-                .provider("TOSS_BRANDPAY")
-                .type(PaymentMethodType.NORMAL)
-                .displayName("Personal Card")
-                .maskedNumber("1234-****-****-3456")
-                .isDefault(true)
-                .status(PaymentMethodStatus.ACTIVE)
-                .build(),
-            PaymentMethodResponseDto.builder()
-                .id(2L)
-                .provider("TOSS_BRANDPAY")
-                .type(PaymentMethodType.BOTH)
-                .displayName("Business Card")
-                .maskedNumber("9876-****-****-7654")
-                .isDefault(false)
-                .status(PaymentMethodStatus.EXPIRED)
-                .build());
-        return res;
-//        return paymentMethodRepository.findAllByUserId(userId).stream().map(PaymentMethodResponseDto::of).toList();
+        if(!auth.isBillingAgreed()) {
+            throw new AppException(PaymentErrorCode.UNAUTHORIZED_ACCESS, "정기결제 약관에 동의가 필요합니다.");
+        }
+
+        PaymentMethod paymentMethod = paymentMethodRepository.findByIdAndUserBrandpayAuth_UserId(paymentMethodId, userid)
+                .orElseThrow(() -> new AppException(PaymentErrorCode.PAYMENT_METHOD_NOT_FOUND));
+
+        paymentMethod.registerBilling();
     }
 
 }

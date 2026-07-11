@@ -9,6 +9,16 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
 
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'com.googlecode.json-simple:json-simple:1.1.1'
+
+    runtimeOnly 'org.postgresql:postgresql'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
 }
 
 tasks.register("prepareKotlinBuildScriptModel"){}
