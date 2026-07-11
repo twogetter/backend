@@ -7,7 +7,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>토스페이먼츠 샘플 프로젝트</title>
-    <!-- SDK 추가 -->
     <script src="https://js.tosspayments.com/v2/standard"></script>
   </head>
 
@@ -20,6 +19,8 @@
         <button class="button" style="margin-top: 30px" onclick="changePassword()">비밀번호변경</button>
         <button class="button" style="margin-top: 30px" onclick="isOneTouchPayEnabled()">원터치결제사용가능여부 조회</button>
         <button class="button" style="margin-top: 30px" onclick="openSettings()">브랜드페이 설정 열기</button>
+        <button class="button" style="margin-top: 30px; background-color: #3182f6; color: white;" onclick="requestBillingAuth()">정기 자동결제 약관동의</button>
+        <button class="button" style="margin-top: 30px; background-color: #f2f4f6; color: #f04452; border: 1px solid #f04452;" onclick="terminateBillingAuth()">전체 정기 자동결제 해지</button>
       </div>
     </div>
     <script th:inline="javascript">
@@ -33,8 +34,6 @@
         redirectUrl: [[${redirectUrl}]] + "?userId=" + [[${userId}]]
       });
 
-      // ------ '결제하기' 버튼 누르면 결제창 띄우기 ------
-      // @docs https://docs.tosspayments.com/sdk/v2/js#brandpayrequestpayment
       async function requestPayment() {
         // 결제를 요청하기 전에 orderId, amount를 서버에 저장하세요.
         // 결제 과정에서 악의적으로 결제 금액이 바뀌는 것을 확인하는 용도입니다.
@@ -72,6 +71,50 @@
 
       async function openSettings() {
         const result = await brandpay.openSettings();
+      }
+
+      async function requestBillingAuth() {
+        try {
+          await brandpay.requestBillingAuth();
+          const response = await fetch("http://localhost:8300/brandpay/billing-auth/success", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ customerKey: customerKey })
+          });
+          console.log("정기결제 인증 요청 성공");
+        } catch (error) {
+          console.error("정기결제 인증 실패:", error);
+          alert("인증 도중 오류가 발생했습니다.");
+        }
+      }
+
+      async function terminateBillingAuth() {
+        if (!confirm("정말 정기 자동결제를 해지하시겠습니까?")) {
+          return;
+        }
+
+        try {
+          const response = await fetch("http://localhost:8300/brandpay/billing-auth/terminate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              customerKey: customerKey
+            })
+          });
+
+          if (response.ok) {
+            alert("정기 자동결제가 정상적으로 해지되었습니다.");
+            location.reload(); // 상태 반영을 위해 새로고침
+          } else {
+            const errorMsg = await response.text();
+            alert("해지 실패: " + errorMsg);
+          }
+        } catch (error) {
+          console.error("해지 요청 중 오류 발생:", error);
+          alert("서버 통신 중 오류가 발생했습니다.");
+        }
       }
 
       function generateRandomString() {

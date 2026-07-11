@@ -37,6 +37,9 @@ public class UserBrandpayAuth extends BaseEntity {
     private String accessToken;
     private String refreshToken;
 
+    @Column(nullable = false)
+    private boolean isBillingAgreed = false;
+
     private LocalDateTime deletedAt;
     @OneToMany(mappedBy = "userBrandpayAuth", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PaymentMethod> paymentMethods = new ArrayList<>();
@@ -48,5 +51,13 @@ public class UserBrandpayAuth extends BaseEntity {
         this.accessToken = newAccessToken;
         this.refreshToken = newRefreshToken;
         this.deletedAt = null;
+    }
+
+    public void agreeBilling() {
+        this.isBillingAgreed = true;
+    }
+
+    public void terminateBilling() {
+        this.isBillingAgreed = false;
     }
 }

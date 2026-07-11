@@ -1,11 +1,12 @@
 package com.bubbletea.payment.service;
 
+import com.bubbletea.common.exception.AppException;
 import com.bubbletea.payment.entity.PaymentMethod;
 import com.bubbletea.payment.entity.UserBrandpayAuth;
 import com.bubbletea.payment.entity.enums.PaymentMethodStatus;
 import com.bubbletea.payment.entity.enums.PaymentMethodType;
 import com.bubbletea.payment.global.exception.PaymentErrorCode;
-import com.bubbletea.payment.global.exception.PaymentException;
+import com.bubbletea.payment.global.exception.PaymentSystemException;
 import com.bubbletea.payment.repository.PaymentMethodRepository;
 import com.bubbletea.payment.repository.UserBrandpayAuthRepository;
 import com.bubbletea.payment.service.dto.BrandpayAuthDetailResponseDto;
@@ -21,15 +22,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BrandpayService {
-    private static final Logger logger = LoggerFactory.getLogger(BrandpayService.class);
 
     private final PaymentMethodRepository paymentMethodRepository;
     private final UserBrandpayAuthRepository userBrandpayAuthRepository;
@@ -37,34 +37,42 @@ public class BrandpayService {
 
     @Transactional
     public BrandpayAuthDetailResponseDto getCustomerKey(Long userId) {
-        UserBrandpayAuth auth = userBrandpayAuthRepository.findByUserId(userId);
+        //TODO: 원래는 userId를 헤더로 받아서 검증해야하지만 일단 인증 없이 진행
+        UserBrandpayAuth auth = userBrandpayAuthRepository.findByUserIdWithDeleted(userId).orElse(null);
         if (auth == null) {
             auth = userBrandpayAuthRepository.save(UserBrandpayAuth.builder()
                     .userId(userId)
                     .customerKey(userId + "_" + UUID.randomUUID().toString())
                     .build());
         }
-
         return new BrandpayAuthDetailResponseDto(auth.getUserId(), auth.getCustomerKey());
     }
 
     @Transactional
     public ConnectBrandpayResponseDto connectBrandpay(ConnectBrandpayRequestDto request) {
-        logger.info("Connecting Brandpay for user: {}, customerKey: {}", request.userId(), request.customerKey());
+        log.info("Connecting Brandpay for user: {}, customerKey: {}", request.userId(), request.customerKey());
+
+//        UserBrandpayAuth existingUserBrandpayAuth = userBrandpayAuthRepository
+//                .findByUserIdWithDeleted(request.userId()).orElse(null);
+//
+//        if (existingUserBrandpayAuth != null && existingUserBrandpayAuth.getDeletedAt() == null) {
+//            log.info("Using existing Brandpay token for user: {}", request.userId());
+//            return ConnectBrandpayResponseDto.of(existingUserBrandpayAuth);
+//        }
 
         try {
             TossAccessTokenResponseDto tokenResponse = tossBrandpayApiClient.getAccessToken(request.customerKey(), request.code());
 
             if (tokenResponse == null || tokenResponse.error() != null) {
-                logger.error("Toss API Error: {}", tokenResponse);
-                throw new PaymentException(PaymentErrorCode.TOSS_API_ERROR,
+                log.error("Toss API Error: {}", tokenResponse);
+                throw new PaymentSystemException(PaymentErrorCode.TOSS_API_ERROR,
                         tokenResponse == null ? "토스 API 오류" : tokenResponse.message());
             }
 
             String accessToken = tokenResponse.accessToken();
             String refreshToken = tokenResponse.refreshToken();
             if (accessToken == null || accessToken.isEmpty()) {
-                throw new PaymentException(PaymentErrorCode.TOSS_API_ERROR, "Access Token을 받지 못했습니다");
+                throw new PaymentSystemException(PaymentErrorCode.TOSS_API_ERROR, "Access Token을 받지 못했습니다");
             }
 
             UserBrandpayAuth existingUserBrandpayAuth = userBrandpayAuthRepository
@@ -72,12 +80,10 @@ public class BrandpayService {
 
             UserBrandpayAuth userBrandpayAuth;
             if (existingUserBrandpayAuth != null) {
-                logger.info("Updating existing Brandpay token for user: {}", request.userId());
+                log.info("Updating existing Brandpay token for user: {}", request.userId());
                 existingUserBrandpayAuth.updateTossTokens(accessToken, refreshToken);
-//                existingUserBrandpayAuth.setStatus(PaymentMethodStatus.ACTIVE);
                 userBrandpayAuth = existingUserBrandpayAuth;
             } else {
-                logger.info("Creating new Brandpay token for user: {}", request.userId());
                 userBrandpayAuth = UserBrandpayAuth.builder()
                         .userId(request.userId())
                         .customerKey(request.customerKey())
@@ -87,16 +93,12 @@ public class BrandpayService {
             }
 
             UserBrandpayAuth savedUserBrandpayAuth = userBrandpayAuthRepository.save(userBrandpayAuth);
-            logger.info("Successfully saved/updated payment method: userId={}", savedUserBrandpayAuth.getUserId());
 
             return ConnectBrandpayResponseDto.of(savedUserBrandpayAuth);
-
-        } catch (PaymentException e) {
-            logger.error("PaymentException in connectBrandpay", e);
+        }
+        catch (PaymentSystemException e) {
+            log.error("PaymentException in connectBrandpay", e);
             throw e;
-        } catch (Exception e) {
-            logger.error("Exception in connectBrandpay", e);
-            throw new PaymentException(PaymentErrorCode.TOSS_API_ERROR, "토스 연동 중 오류가 발생했습니다");
         }
     }
 
@@ -105,8 +107,8 @@ public class BrandpayService {
         TossRegisteredPaymentMethodsResponseDto methodResponse = tossBrandpayApiClient.getRegisteredPaymentMethods(userBrandpayAuth.getAccessToken());
 
         if (methodResponse == null || methodResponse.error() != null) {
-            logger.error("Failed to load Brandpay payment methods: {}", methodResponse);
-            throw new PaymentException(PaymentErrorCode.TOSS_API_ERROR,
+            log.error("Failed to load Brandpay payment methods: {}", methodResponse);
+            throw new PaymentSystemException(PaymentErrorCode.TOSS_API_ERROR,
                     methodResponse == null ? "등록된 결제수단을 조회하지 못했습니다" : methodResponse.message());
         }
 
@@ -144,21 +146,41 @@ public class BrandpayService {
 
         if (!toDelete.isEmpty()) {
             paymentMethodRepository.deleteAll(toDelete);
-            logger.info("Deleted Brandpay payment methods for userId={}, count={}", userBrandpayAuth.getUserId(), toDelete.size());
+            log.info("Deleted Brandpay payment methods for userId={}, count={}", userBrandpayAuth.getUserId(), toDelete.size());
         }
 
         if (!toSave.isEmpty()) {
             paymentMethodRepository.saveAll(toSave);
-            logger.info("Saved/Updated Brandpay payment methods for userId={}, count={}", userBrandpayAuth.getUserId(), toSave.size());
+            log.info("Saved/Updated Brandpay payment methods for userId={}, count={}", userBrandpayAuth.getUserId(), toSave.size());
         }
     }
 
     @Transactional
     public void disconnectBrandpayByWebhook(String customerKey) {
         UserBrandpayAuth auth = userBrandpayAuthRepository.findByCustomerKey(customerKey)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 인증 정보입니다."));
+                .orElseThrow(() -> new AppException(PaymentErrorCode.USER_NOT_FOUND, "존재하지 않는 인증 정보입니다."));
 
         userBrandpayAuthRepository.delete(auth);
+    }
+
+    @Transactional
+    public void billingAllow(String customerKey) {
+        UserBrandpayAuth auth = userBrandpayAuthRepository.findByCustomerKey(customerKey)
+                .orElseThrow(() -> new AppException(PaymentErrorCode.USER_NOT_FOUND, "존재하지 않는 인증 정보입니다."));
+
+        auth.agreeBilling();
+        userBrandpayAuthRepository.save(auth);
+    }
+
+    @Transactional
+    public void terminateBilling(String customerKey) {
+
+        UserBrandpayAuth auth = userBrandpayAuthRepository.findByCustomerKey(customerKey)
+                .orElseThrow(() -> new AppException(PaymentErrorCode.USER_NOT_FOUND, "가입자를 찾을 수 없습니다."));
+
+        auth.terminateBilling();
+
+        paymentMethodRepository.updateTypeToNormalByCustomerKey(customerKey);
     }
 
     public List<PaymentMethodResponseDto> getPaymentMethods(Long userId) {

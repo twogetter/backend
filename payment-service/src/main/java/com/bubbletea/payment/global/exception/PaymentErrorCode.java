@@ -15,6 +15,7 @@ public enum PaymentErrorCode implements ErrorCode {
     DB_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "500", "결제 수단 저장 실패"),
     ALREADY_CONNECTED(HttpStatus.CONFLICT, "409", "이미 연동된 계정입니다"),
     PAYMENT_METHOD_NOT_FOUND(HttpStatus.NOT_FOUND, "404", "결제 수단을 찾을 수 없습니다"),
+    USER_BRANDPAY_AUTH_NOT_FOUND(HttpStatus.NOT_FOUND, "404", "사용자 브랜드페이 인증 정보를 찾을 수 없습니다"),
     UNAUTHORIZED_ACCESS(HttpStatus.FORBIDDEN, "403", "접근 권한이 없습니다"),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "404", "사용자를 찾을 수 없습니다");
 

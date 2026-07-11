@@ -67,4 +67,8 @@ public class PaymentMethod extends BaseEntity {
         this.status = incoming.status;
         this.isDefault = incoming.isDefault;
     }
+
+    public void registerBilling() {
+        this.type = PaymentMethodType.BILLING;
+    }
 }
