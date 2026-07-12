@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 public record ProductRegisteredEvent(
     String artistId,
     LocalDateTime registeredAt
-) implements ProductEvent{
+) implements ProductEvent {
 
     @Override
     public ProductEventType eventType() {
