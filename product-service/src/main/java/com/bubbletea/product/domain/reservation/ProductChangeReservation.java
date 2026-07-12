@@ -1,5 +1,8 @@
 package com.bubbletea.product.domain.reservation;
 
+import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.OPEN_DATE;
+import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.PRODUCT_NAME;
+
 import com.bubbletea.product.domain.common.BaseTimeEntity;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -45,8 +48,10 @@ public class ProductChangeReservation extends BaseTimeEntity {
     private LocalDateTime expireAt;
 
     private ProductChangeReservation(
-        String productId, ReservationCommandType commandType,
-        Map<String, Object> payload, LocalDateTime scheduledAt
+        String productId,
+        ReservationCommandType commandType,
+        Map<String, Object> payload,
+        LocalDateTime scheduledAt
     ) {
         this.productId = productId;
         this.commandType = commandType;
@@ -62,7 +67,7 @@ public class ProductChangeReservation extends BaseTimeEntity {
         return new ProductChangeReservation(
             productId,
             ReservationCommandType.NOTIFY_OPEN_SCHEDULE,
-            Map.of("productName", productName, "openDate", openDate.toString()),
+            Map.of(PRODUCT_NAME, productName, OPEN_DATE, openDate.toString()),
             notifyAt
         );
     }
@@ -77,4 +82,5 @@ public class ProductChangeReservation extends BaseTimeEntity {
             openDate
         );
     }
+
 }
