@@ -1,7 +1,9 @@
 package com.bubbletea.product.domain.product;
 
 
+import com.bubbletea.common.exception.AppException;
 import com.bubbletea.product.domain.common.BaseTimeEntity;
+import com.bubbletea.product.domain.exception.ProductErrorCode;
 import com.bubbletea.product.domain.product.policy.ProductOpenSchedulePolicy;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -70,13 +72,41 @@ public class Product extends BaseTimeEntity {
 
     public static Product schedule(
         String artistId, String artistName, String groupName,
-        String description, String imageUrl, long price,
-        LocalDateTime openDate
+        String description, String imageUrl, long price, LocalDateTime openDate
     ) {
         ProductOpenSchedulePolicy.validate(openDate, LocalDateTime.now());
         return new Product(
-            artistId, artistName, groupName, description, imageUrl, price, openDate
-        );
+            artistId, artistName, groupName, description, imageUrl, price, openDate);
+    }
+
+    public void activate() {
+        assertNotDeleted();
+        this.status = ProductStatus.ACTIVE;
+        this.statusChangedAt = LocalDateTime.now();
+    }
+
+    public void deactivate() {
+        assertNotDeleted();
+        this.status = ProductStatus.INACTIVE;
+        this.statusChangedAt = LocalDateTime.now();
+    }
+
+    public void changePrice(long newPrice) {
+        assertNotDeleted();
+        this.price = newPrice;
+    }
+
+    public void markDeleted() {
+        assertNotDeleted();
+        this.deleted = true;
+        this.deletedAt = LocalDateTime.now();
+        this.scheduledDeletionDate = null;
+    }
+
+    private void assertNotDeleted() {
+        if (this.deleted) {
+            throw new AppException(ProductErrorCode.ALREADY_DELETED);
+        }
     }
 
 }

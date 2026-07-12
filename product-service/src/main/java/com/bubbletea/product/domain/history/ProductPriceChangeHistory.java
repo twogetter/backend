@@ -44,4 +44,13 @@ public class ProductPriceChangeHistory extends BaseCreatedAtEntity {
         this.batchId = batchId;
         this.appliedAt = appliedAt;
     }
+
+    public static ProductPriceChangeHistory of(
+        String productId, long originalPrice, long changedPrice,
+        String batchId, LocalDateTime appliedAt
+    ) {
+        return new ProductPriceChangeHistory(
+            productId, originalPrice, changedPrice, batchId, appliedAt
+        );
+    }
 }

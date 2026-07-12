@@ -1,7 +1,7 @@
 package com.bubbletea.product.domain.product.policy;
 
 import com.bubbletea.common.exception.AppException;
-import com.bubbletea.product.domain.product.exception.ProductErrorCode;
+import com.bubbletea.product.domain.exception.ProductErrorCode;
 import java.time.LocalDateTime;
 import lombok.experimental.UtilityClass;
 
