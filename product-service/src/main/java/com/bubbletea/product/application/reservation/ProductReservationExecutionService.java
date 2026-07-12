@@ -91,7 +91,9 @@ public class ProductReservationExecutionService {
 
         } catch (Exception e) {
             log.error("[예약 실행 실패] reservationId={} ", reservation.getId(), e);
-            recordReservationFail(reservation, e.getMessage());
+            String failReason =
+                e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            recordReservationFail(reservation, failReason);
         }
     }
 
