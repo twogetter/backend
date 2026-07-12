@@ -23,7 +23,7 @@ public class ProductReservationScheduler {
         run(ReservationCategory.NOTIFICATION);
     }
 
-    @Scheduled(cron = "${product.reservation.scheduler.status-change-cron:0 0 15 * * *}")
+    @Scheduled(cron = "${product.reservation.scheduler.status-change-cron:0 0 13 * * *}")
     public void runStatusChanges() {
         run(ReservationCategory.STATUS_CHANGE);
     }
