@@ -1,7 +1,7 @@
 package com.bubbletea.product.presentation.controller;
 
-import com.bubbletea.product.application.service.ProductChatEventService;
-import com.bubbletea.product.application.service.ProductScheduleNotificationService;
+import com.bubbletea.product.application.event.ProductChatEventService;
+import com.bubbletea.product.application.event.ProductScheduleNotificationService;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -63,8 +63,8 @@ public class MockProductEventController {
 
     @PostMapping("/price-change")
     public ResponseEntity<Void> mockPriceChangeEvent() {
-        int originPrice = 5900;
-        int changePrice = 6900;
+        long originPrice = 5900;
+        long changePrice = 6900;
         productScheduleNotificationService.notifyPriceChangeSchedule(
             productName, LocalDateTime.now().plusDays(3), originPrice, changePrice
         );

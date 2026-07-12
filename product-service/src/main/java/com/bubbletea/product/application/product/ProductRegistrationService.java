@@ -2,10 +2,10 @@ package com.bubbletea.product.application.product;
 
 import com.bubbletea.common.exception.AppException;
 import com.bubbletea.product.application.product.dto.ProductResponseDto;
-import com.bubbletea.product.application.service.ProductChatEventService;
+import com.bubbletea.product.application.event.ProductChatEventService;
 import com.bubbletea.product.domain.product.Product;
 import com.bubbletea.product.domain.product.ProductRepository;
-import com.bubbletea.product.domain.product.exception.ProductErrorCode;
+import com.bubbletea.product.domain.exception.ProductErrorCode;
 import com.bubbletea.product.domain.reservation.ProductChangeReservation;
 import com.bubbletea.product.domain.reservation.ProductChangeReservationRepository;
 import com.bubbletea.product.presentation.dto.ProductRegisterRequestDto;
