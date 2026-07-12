@@ -1,4 +1,4 @@
-package com.bubbletea.product.domain.product.exception;
+package com.bubbletea.product.domain.exception;
 
 import com.bubbletea.common.exception.ErrorCode;
 import lombok.Getter;
@@ -18,6 +18,16 @@ public enum ProductErrorCode implements ErrorCode {
         HttpStatus.CONFLICT,
         "PRODUCT-CONFLICT-DUPLICATE_ARTIST",
         "해당 아티스트는 이미 상품으로 등록되어 있습니다."
+    ),
+    ALREADY_DELETED(
+        HttpStatus.CONFLICT,
+        "PRODUCT-CONFLICT-ALREADY_DELETED",
+        "이미 삭제된 상품은 상태를 변경할 수 없습니다."
+    ),
+    PRODUCT_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "PRODUCT-NOT_FOUND-ID",
+        "해당 ID의 상품을 찾을 수 없습니다."
     );
 
     private final HttpStatus httpStatus;

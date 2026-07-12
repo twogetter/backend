@@ -1,4 +1,4 @@
-package com.bubbletea.product.application.service;
+package com.bubbletea.product.application.event;
 
 
 import com.bubbletea.product.domain.event.ProductEventPublisher;
