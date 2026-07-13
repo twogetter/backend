@@ -2,8 +2,11 @@ package com.bubbletea.product.application.reservation.executor;
 
 import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.BATCH_ID;
 import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.CHANGED_PRICE;
+import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.ORIGINAL_PRICE;
 
 import com.bubbletea.common.exception.AppException;
+import com.bubbletea.product.domain.history.ProductChangeHistory;
+import com.bubbletea.product.domain.history.ProductChangeHistoryRepository;
 import com.bubbletea.product.domain.history.ProductPriceChangeHistory;
 import com.bubbletea.product.domain.history.ProductPriceChangeHistoryRepository;
 import com.bubbletea.product.domain.product.Product;
@@ -12,6 +15,7 @@ import com.bubbletea.product.domain.exception.ProductErrorCode;
 import com.bubbletea.product.domain.reservation.ProductChangeReservation;
 import com.bubbletea.product.domain.reservation.ReservationCommandType;
 import java.time.LocalDateTime;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +25,7 @@ import org.springframework.stereotype.Component;
 public class PriceChangeExecutor implements ReservationCommandExecutor {
 
     private final ProductRepository productRepository;
+    private final ProductChangeHistoryRepository productChangeHistoryRepository;
     private final ProductPriceChangeHistoryRepository productPriceChangeHistoryRepository;
 
     @Override
@@ -43,6 +48,13 @@ public class PriceChangeExecutor implements ReservationCommandExecutor {
         productPriceChangeHistoryRepository.save(
             ProductPriceChangeHistory.of(
                 product.getId(), originalPrice, changedPrice, batchId, LocalDateTime.now())
+        );
+
+        productChangeHistoryRepository.save(
+            ProductChangeHistory.recordSuccess(reservation, Map.of(
+                ORIGINAL_PRICE, originalPrice,
+                CHANGED_PRICE, changedPrice
+            ))
         );
     }
 }
