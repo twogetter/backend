@@ -10,18 +10,17 @@ import lombok.experimental.UtilityClass;
 public class CursorCodec {
 
     private static final String DELIMITER = ":::";
+    private static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
+    private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
+
 
     public record DecodedCursor(String artistName, String id) {
-
         public static final DecodedCursor EMPTY =
             new DecodedCursor(null, null);
     }
 
     public static String encode(String artistName, String id) {
-        String raw = artistName + DELIMITER + id;
-        return Base64.getUrlEncoder()
-            .withoutPadding()
-            .encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+        return encodeToBase64(artistName) + DELIMITER + encodeToBase64(id);
     }
 
     public static DecodedCursor decode(String cursor) {
@@ -30,20 +29,28 @@ public class CursorCodec {
         }
 
         try {
-            String raw = new String(
-                Base64.getUrlDecoder().decode(cursor),
-                StandardCharsets.UTF_8
-            );
-            String[] parts = raw.split(DELIMITER, 2);
+            String[] parts = cursor.split(DELIMITER, 2);
 
             if (parts.length != 2) {
                 throw new AppException(ProductApplicationErrorCode.INVALID_CURSOR);
             }
 
-            return new DecodedCursor(parts[0], parts[1]);
+            return new DecodedCursor(
+                decodeFromBase64(parts[0]),
+                decodeFromBase64(parts[1])
+            );
 
         } catch (IllegalArgumentException e) {
             throw new AppException(ProductApplicationErrorCode.INVALID_CURSOR);
         }
     }
+
+    private static String encodeToBase64(String value) {
+        return ENCODER.encodeToString(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String decodeFromBase64(String value) {
+        return new String(DECODER.decode(value), StandardCharsets.UTF_8);
+    }
+
 }
