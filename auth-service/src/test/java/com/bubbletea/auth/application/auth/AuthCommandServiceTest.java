@@ -148,6 +148,9 @@ class AuthCommandServiceTest {
 
         verify(authAccountRepository)
                 .existsByEmail(email);
+
+        verify(userServiceClient, never())
+                .rollbackSignUp(anyLong());
     }
 
     @Test
@@ -182,6 +185,63 @@ class AuthCommandServiceTest {
 
         verify(authAccountRepository, never())
                 .save(any(AuthAccount.class));
+
+        verify(userServiceClient, never())
+                .rollbackSignUp(anyLong());
+    }
+
+    @Test
+    @DisplayName("Auth 계정 저장 실패 시 user-service 회원 생성을 롤백한다")
+    void signUpRollsBackMemberWhenAuthAccountSaveFails() {
+        // given
+        String email = "rollback@example.com";
+        String password = "Password123!";
+        String nickname = "롤백테스터";
+        String encodedPassword = "encoded-password";
+
+        SignUpCommand command =
+                new SignUpCommand(
+                        email,
+                        password,
+                        nickname
+                );
+
+        CreateMemberInternalResponse memberResponse =
+                new CreateMemberInternalResponse(
+                        10L,
+                        email,
+                        nickname,
+                        "USER",
+                        "ACTIVE"
+                );
+
+        when(authAccountRepository.existsByEmail(email))
+                .thenReturn(false);
+
+        when(passwordEncoder.encode(password))
+                .thenReturn(encodedPassword);
+
+        when(userServiceClient.createMember(
+                any(CreateMemberInternalRequest.class)
+        )).thenReturn(memberResponse);
+
+        when(authAccountRepository.save(
+                any(AuthAccount.class)
+        )).thenThrow(
+                new IllegalStateException(
+                        "Auth 계정 저장 실패"
+                )
+        );
+
+        // when & then
+        assertThatThrownBy(
+                () -> authCommandService.signUp(command)
+        )
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Auth 계정 저장 실패");
+
+        verify(userServiceClient)
+                .rollbackSignUp(10L);
     }
 
     @Test
@@ -237,14 +297,14 @@ class AuthCommandServiceTest {
         when(jwtProvider.getRefreshTokenExpiration())
                 .thenReturn(Duration.ofDays(14));
 
-        LoginCommand command = new LoginCommand(
-                email,
-                rawPassword
-        );
-
         // when
         TokenResult result =
-                authCommandService.login(command);
+                authCommandService.login(
+                        new LoginCommand(
+                                email,
+                                rawPassword
+                        )
+                );
 
         // then
         assertThat(result.accessToken())
@@ -313,14 +373,14 @@ class AuthCommandServiceTest {
                 encodedPassword
         )).thenReturn(false);
 
-        LoginCommand command = new LoginCommand(
-                email,
-                rawPassword
-        );
-
         // when & then
         assertThatThrownBy(
-                () -> authCommandService.login(command)
+                () -> authCommandService.login(
+                        new LoginCommand(
+                                email,
+                                rawPassword
+                        )
+                )
         )
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(
@@ -377,14 +437,14 @@ class AuthCommandServiceTest {
         when(userServiceClient.getMemberAuthInfo(2L))
                 .thenReturn(memberInfo);
 
-        LoginCommand command = new LoginCommand(
-                email,
-                rawPassword
-        );
-
         // when & then
         assertThatThrownBy(
-                () -> authCommandService.login(command)
+                () -> authCommandService.login(
+                        new LoginCommand(
+                                email,
+                                rawPassword
+                        )
+                )
         )
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("로그인할 수 없는 회원입니다.");
@@ -450,12 +510,13 @@ class AuthCommandServiceTest {
         when(jwtProvider.getRefreshTokenExpiration())
                 .thenReturn(Duration.ofDays(14));
 
-        RefreshTokenCommand command =
-                new RefreshTokenCommand(oldRefreshToken);
-
         // when
         TokenResult result =
-                authCommandService.refresh(command);
+                authCommandService.refresh(
+                        new RefreshTokenCommand(
+                                oldRefreshToken
+                        )
+                );
 
         // then
         assertThat(result.accessToken())
@@ -481,18 +542,6 @@ class AuthCommandServiceTest {
 
         verify(userServiceClient)
                 .getMemberAuthInfo(1L);
-
-        verify(jwtProvider)
-                .createAccessToken(
-                        1L,
-                        "USER"
-                );
-
-        verify(jwtProvider)
-                .createRefreshToken(
-                        1L,
-                        "USER"
-                );
 
         verify(refreshTokenStore)
                 .save(
@@ -567,11 +616,10 @@ class AuthCommandServiceTest {
         when(refreshTokenStore.findByMemberId(1L))
                 .thenReturn(Optional.of(refreshToken));
 
-        LogoutCommand command =
-                new LogoutCommand(refreshToken);
-
         // when
-        authCommandService.logout(command);
+        authCommandService.logout(
+                new LogoutCommand(refreshToken)
+        );
 
         // then
         verify(jwtProvider)

@@ -15,13 +15,14 @@ import com.bubbletea.auth.infrastructure.client.dto.CreateMemberInternalResponse
 import com.bubbletea.auth.infrastructure.client.dto.MemberAuthInfoResponse;
 import com.bubbletea.auth.infrastructure.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthCommandService {
@@ -41,8 +42,8 @@ public class AuthCommandService {
      * 2. 비밀번호 BCrypt 암호화
      * 3. User Service에 회원 기본 정보 생성 요청
      * 4. Auth DB에 로그인 계정 저장
+     * 5. Auth DB 저장 실패 시 User Service 회원 생성 보상 처리
      */
-    @Transactional
     public SignUpResult signUp(SignUpCommand command) {
         validateDuplicateEmail(command.email());
 
@@ -57,20 +58,29 @@ public class AuthCommandService {
                         )
                 );
 
-        AuthAccount authAccount = AuthAccount.create(
-                memberResponse.memberId(),
-                command.email(),
-                encodedPassword
-        );
+        try {
+            AuthAccount authAccount = AuthAccount.create(
+                    memberResponse.memberId(),
+                    command.email(),
+                    encodedPassword
+            );
 
-        AuthAccount savedAccount =
-                authAccountRepository.save(authAccount);
+            AuthAccount savedAccount =
+                    authAccountRepository.save(authAccount);
 
-        return new SignUpResult(
-                savedAccount.getMemberId(),
-                memberResponse.email(),
-                memberResponse.nickname()
-        );
+            return new SignUpResult(
+                    savedAccount.getMemberId(),
+                    memberResponse.email(),
+                    memberResponse.nickname()
+            );
+        } catch (RuntimeException saveException) {
+            rollbackCreatedMember(
+                    memberResponse.memberId(),
+                    saveException
+            );
+
+            throw saveException;
+        }
     }
 
     /**
@@ -82,7 +92,6 @@ public class AuthCommandService {
      * 4. Access/Refresh Token 발급
      * 5. Refresh Token Redis 저장
      */
-    @Transactional(readOnly = true)
     public TokenResult login(LoginCommand command) {
         AuthAccount authAccount =
                 authAccountRepository.findByEmail(command.email())
@@ -216,6 +225,29 @@ public class AuthCommandService {
                 jwtProvider.getAccessTokenExpirationSeconds(),
                 jwtProvider.getRefreshTokenExpirationSeconds()
         );
+    }
+
+    /**
+     * Auth 계정 저장에 실패했을 경우
+     * user-service에 먼저 생성된 회원을 보상 삭제한다.
+     */
+    private void rollbackCreatedMember(
+            Long memberId,
+            RuntimeException originalException
+    ) {
+        try {
+            userServiceClient.rollbackSignUp(memberId);
+        } catch (RuntimeException rollbackException) {
+            log.error(
+                    "회원가입 보상 처리 실패. memberId={}",
+                    memberId,
+                    rollbackException
+            );
+
+            originalException.addSuppressed(
+                    rollbackException
+            );
+        }
     }
 
     private void validateDuplicateEmail(String email) {
