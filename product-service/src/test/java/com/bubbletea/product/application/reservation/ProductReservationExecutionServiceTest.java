@@ -2,15 +2,12 @@ package com.bubbletea.product.application.reservation;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import com.bubbletea.product.application.reservation.executor.ReservationCommandExecutor;
-import com.bubbletea.product.domain.history.ProductChangeHistory;
 import com.bubbletea.product.domain.history.ProductChangeHistoryRepository;
 import com.bubbletea.product.domain.reservation.ProductChangeReservation;
 import com.bubbletea.product.domain.reservation.ProductChangeReservationRepository;
