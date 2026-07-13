@@ -1,5 +1,6 @@
 package com.bubbletea.chat.infrastructure.kafka.consumer.product;
 
+import com.bubbletea.chat.application.service.ChatRoomService;
 import com.bubbletea.chat.infrastructure.kafka.config.ChatKafkaTopics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -13,13 +14,16 @@ import org.springframework.stereotype.Component;
 public class ProductRegisteredEventConsumer {
 
   private final ObjectMapper objectMapper;
+  private final ChatRoomService chatRoomService;
 
   @KafkaListener(topics = ChatKafkaTopics.PRODUCT_REGISTERED, groupId = "chat-service")
   public void consume(String message) {
     try {
       ProductRegisteredEvent event = objectMapper.readValue(message, ProductRegisteredEvent.class);
       log.info("[Kafka 수신] 상품 등록 이벤트 : {}", event);
-      // TODO: application Layer 연결
+
+      Long chatRoomId = chatRoomService.createChatRoom(event.artistId());
+      log.info("[채팅방 생성 완료] artistId: {}, chatRoomId: {}", event.artistId(), chatRoomId);
     } catch (Exception e) {
       log.error("[Kafka 수신 실패] : {}", message, e);
       throw new RuntimeException(e);
