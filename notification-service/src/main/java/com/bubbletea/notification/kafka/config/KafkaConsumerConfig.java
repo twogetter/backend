@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.context.annotation.Bean;
@@ -85,7 +86,13 @@ public class KafkaConsumerConfig {
 
   @Bean
   public CommonErrorHandler commonErrorHandler(KafkaTemplate<String, String> kafkaTemplate) {
-    DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate);
+    DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
+        kafkaTemplate,
+        (record, exception) -> new TopicPartition(
+            record.topic() + KafkaTopicConfig.DEAD_LETTER_TOPIC_SUFFIX,
+            record.partition()
+        )
+    );
     recoverer.setFailIfSendResultIsError(true);
 
     return new DefaultErrorHandler(recoverer, new FixedBackOff(

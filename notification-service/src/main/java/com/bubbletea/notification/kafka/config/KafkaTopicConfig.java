@@ -13,6 +13,7 @@ import org.springframework.kafka.core.KafkaAdmin;
 @Configuration
 public class KafkaTopicConfig {
 
+  public static final String DEAD_LETTER_TOPIC_SUFFIX = "-dlt";
   public static final String PRODUCT_ACTIVATION_SCHEDULED_TOPIC = "notification.product.productActivationScheduled";
   public static final String PRODUCT_DELETION_SCHEDULED_TOPIC = "notification.product.productDeletionScheduled";
   public static final String PRODUCT_PRICE_CHANGE_SCHEDULED_TOPIC = "notification.product.productPriceChangeScheduled";
@@ -136,7 +137,7 @@ public class KafkaTopicConfig {
   }
 
   private NewTopic createDeadLetterTopic(String topicName) {
-    return createTopic(topicName + ".DLT");
+    return createTopic(topicName + DEAD_LETTER_TOPIC_SUFFIX);
   }
 
   private String getBootstrapServers(Environment environment) {
