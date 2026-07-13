@@ -109,11 +109,34 @@ public class KafkaTopicConfig {
     return createTopic(SUBSCRIBE_RENEWAL_TOPIC);
   }
 
+  @Bean
+  public KafkaAdmin.NewTopics deadLetterTopics() {
+    return new KafkaAdmin.NewTopics(
+        createDeadLetterTopic(PRODUCT_ACTIVATION_SCHEDULED_TOPIC),
+        createDeadLetterTopic(PRODUCT_DELETION_SCHEDULED_TOPIC),
+        createDeadLetterTopic(PRODUCT_PRICE_CHANGE_SCHEDULED_TOPIC),
+        createDeadLetterTopic(PRODUCT_DEACTIVATION_SCHEDULED_TOPIC),
+        createDeadLetterTopic(PRODUCT_OPEN_SCHEDULED_TOPIC),
+        createDeadLetterTopic(PAYMENT_COMPLETE_TOPIC),
+        createDeadLetterTopic(PAYMENT_FAIL_TOPIC),
+        createDeadLetterTopic(MEMBER_SIGNED_UP_TOPIC),
+        createDeadLetterTopic(MEMBER_AUTH_LOGIN_TOPIC),
+        createDeadLetterTopic(MEMBER_PASSWORD_CHANGED_TOPIC),
+        createDeadLetterTopic(MEMBER_DELETE_ACCOUNT_TOPIC),
+        createDeadLetterTopic(CHAT_PUBLISHED_TOPIC),
+        createDeadLetterTopic(SUBSCRIBE_RENEWAL_TOPIC)
+    );
+  }
+
   private NewTopic createTopic(String topicName) {
     return TopicBuilder.name(topicName)
         .partitions(DEFAULT_PARTITIONS)
         .replicas(DEFAULT_REPLICAS)
         .build();
+  }
+
+  private NewTopic createDeadLetterTopic(String topicName) {
+    return createTopic(topicName + ".DLT");
   }
 
   private String getBootstrapServers(Environment environment) {
