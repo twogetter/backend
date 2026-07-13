@@ -12,9 +12,6 @@ dependencies {
     implementation 'org.springframework.kafka:spring-kafka'
 
     runtimeOnly 'org.postgresql:postgresql'
-
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.register("prepareKotlinBuildScriptModel") {}
