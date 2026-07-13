@@ -19,7 +19,18 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Document(collection = "products")
 @CompoundIndexes({
-    @CompoundIndex(name = "idx_status_openDate", def = "{'status': 1, 'openDate': 1}")
+    @CompoundIndex(
+        name = "idx_status_openDate",
+        def = "{'status': 1, 'openDate': 1}"
+    ),
+    @CompoundIndex(
+        name = "idx_product_list",
+        def = "{'status': 1, 'deleted': 1, 'artistName': 1, '_id': 1}"
+    ),
+    @CompoundIndex(
+        name = "idx_product_list_by_group",
+        def = "{'status': 1, 'deleted': 1, 'groupName': 1, 'artistName': 1, '_id': 1}"
+    )
 })
 public class Product extends BaseTimeEntity {
 
