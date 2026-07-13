@@ -4,10 +4,10 @@ import java.time.LocalDateTime;
 
 
 public record ProductPriceChangeScheduledEvent(
-        String productName,
-        LocalDateTime priceChangeDate,
-        int originalPrice,
-        int changedPrice
+    String productName,
+    LocalDateTime priceChangeDate,
+    long originalPrice,
+    long changedPrice
 ) implements ProductEvent {
 
     @Override

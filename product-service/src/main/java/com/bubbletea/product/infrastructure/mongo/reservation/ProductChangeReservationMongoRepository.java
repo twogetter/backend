@@ -1,4 +1,4 @@
-package com.bubbletea.product.infrastructure.mongo;
+package com.bubbletea.product.infrastructure.mongo.reservation;
 
 import com.bubbletea.product.domain.reservation.ProductChangeReservation;
 import org.springframework.data.mongodb.repository.MongoRepository;

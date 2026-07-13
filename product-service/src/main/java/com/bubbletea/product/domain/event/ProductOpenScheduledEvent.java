@@ -4,8 +4,8 @@ import java.time.LocalDateTime;
 
 
 public record ProductOpenScheduledEvent(
-        String productName,
-        LocalDateTime openDate
+    String productName,
+    LocalDateTime openDate
 ) implements ProductEvent {
 
     @Override

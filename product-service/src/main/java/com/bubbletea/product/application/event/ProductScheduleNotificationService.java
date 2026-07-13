@@ -1,4 +1,4 @@
-package com.bubbletea.product.application.service;
+package com.bubbletea.product.application.event;
 
 import com.bubbletea.product.domain.event.ProductActivationScheduledEvent;
 import com.bubbletea.product.domain.event.ProductDeactivationScheduledEvent;
@@ -37,7 +37,7 @@ public class ProductScheduleNotificationService {
 
     public void notifyPriceChangeSchedule(
         String productName, LocalDateTime priceChangeDate,
-        int originalPrice, int changedPrice
+        long originalPrice, long changedPrice
     ) {
         productEventPublisher.publish(
             new ProductPriceChangeScheduledEvent(
