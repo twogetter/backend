@@ -5,25 +5,32 @@ import com.bubbletea.chat.domain.exception.ChatErrorCode;
 import com.bubbletea.chat.domain.repository.ChatRoomRepository;
 import com.bubbletea.common.exception.AppException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class ChatRoomService {
 
   private final ChatRoomRepository chatRoomRepository;
   private final ChatRoomReader chatRoomReader;
+  private final ChatRoomWriter chatRoomWriter;
 
   @Transactional
-  public Long createChatRoom(final Long artistId) {
+  public Long createChatRoom(Long artistId) {
     try {
-      final ChatRoom chatRoom = ChatRoom.create(artistId);
-      return chatRoomRepository.saveAndFlush(chatRoom).getId();
+      return chatRoomWriter.create(artistId);
     } catch (DataIntegrityViolationException e) {
-      return chatRoomReader.getChatRoomId(artistId);
+      final Throwable cause = e.getMostSpecificCause();
+      if (cause.getMessage() != null && cause.getMessage().contains("uk_chat_rooms_artist_id")) {
+        log.info("기존 채팅방을 반환합니다. artistId={}", artistId);
+        return chatRoomReader.getChatRoomId(artistId);
+      }
+      throw e;
     }
   }
 
