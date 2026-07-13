@@ -5,30 +5,20 @@ import com.bubbletea.chat.domain.exception.ChatErrorCode;
 import com.bubbletea.chat.domain.repository.ChatRoomRepository;
 import com.bubbletea.common.exception.AppException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class ChatRoomService {
+public class ChatRoomReader {
 
   private final ChatRoomRepository chatRoomRepository;
-  private final ChatRoomReader chatRoomReader;
 
-  @Transactional
-  public Long createChatRoom(final Long artistId) {
-    try {
-      final ChatRoom chatRoom = ChatRoom.create(artistId);
-      return chatRoomRepository.saveAndFlush(chatRoom).getId();
-    } catch (DataIntegrityViolationException e) {
-      return chatRoomReader.getChatRoomId(artistId);
-    }
-  }
-
-  public ChatRoom getChatRoomByArtistId(final Long artistId) {
+  @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+  public Long getChatRoomId(Long artistId) {
     return chatRoomRepository.findByArtistId(artistId)
+        .map(ChatRoom::getId)
         .orElseThrow(() -> new AppException(ChatErrorCode.CHAT_ROOM_NOT_FOUND));
   }
 }
