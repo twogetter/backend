@@ -14,5 +14,10 @@ public interface MemberRepository {
 
     boolean existsByNickname(String nickname);
 
-    boolean existsByNicknameAndIdNot(String nickname, Long memberId);
+    boolean existsByNicknameAndIdNot(
+            String nickname,
+            Long memberId
+    );
+
+    void delete(Member member);
 }
