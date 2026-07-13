@@ -37,6 +37,10 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.security:spring-security-test'
+
+    // 테스트용 인메모리 DB
+    testRuntimeOnly 'com.h2database:h2'
+
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
@@ -55,9 +59,19 @@ sourceSets {
 tasks.named('test') {
     useJUnitPlatform()
 
+    /*
+     * 테스트 실행 시 외부 Config Server와 Eureka에 연결하지 않는다.
+     * 로컬 인프라가 실행 중이지 않아도 테스트가 가능하도록 설정한다.
+     */
+    systemProperty 'spring.config.import', 'optional:configserver:'
+    systemProperty 'spring.cloud.config.enabled', 'false'
+    systemProperty 'spring.cloud.config.import-check.enabled', 'false'
+    systemProperty 'spring.cloud.discovery.enabled', 'false'
+    systemProperty 'eureka.client.enabled', 'false'
+
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
 }
 
-tasks.register("prepareKotlinBuildScriptModel") {
+tasks.register('prepareKotlinBuildScriptModel') {
 }
