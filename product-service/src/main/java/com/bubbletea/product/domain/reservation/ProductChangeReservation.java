@@ -1,5 +1,6 @@
 package com.bubbletea.product.domain.reservation;
 
+import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.DELETION_DATE;
 import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.OPEN_DATE;
 import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.PRODUCT_NAME;
 
@@ -80,6 +81,31 @@ public class ProductChangeReservation extends BaseTimeEntity {
             ReservationCommandType.ACTIVATE,
             Map.of(),
             openDate
+        );
+    }
+
+    public static ProductChangeReservation ofNotifyDeletionSchedule(
+        String productId,
+        LocalDateTime notifyAt,
+        String productName,
+        LocalDateTime deletionDate
+    ) {
+        return new ProductChangeReservation(
+            productId,
+            ReservationCommandType.NOTIFY_DELETION_SCHEDULE,
+            Map.of(PRODUCT_NAME, productName, DELETION_DATE, deletionDate.toString()),
+            notifyAt
+        );
+    }
+
+    public static ProductChangeReservation ofDeletion(
+        String productId, LocalDateTime deletionDate
+    ) {
+        return new ProductChangeReservation(
+            productId,
+            ReservationCommandType.DELETION,
+            Map.of(),
+            deletionDate
         );
     }
 

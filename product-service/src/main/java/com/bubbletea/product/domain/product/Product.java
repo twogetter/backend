@@ -91,6 +91,11 @@ public class Product extends BaseTimeEntity {
             artistId, artistName, groupName, description, imageUrl, price, openDate);
     }
 
+    public void verifySchedulability(LocalDateTime runDate) {
+        assertNotDeleted();
+        ProductSchedulePolicy.validate(runDate, LocalDateTime.now());
+    }
+
     public void activate() {
         assertNotDeleted();
         this.status = ProductStatus.ACTIVE;
