@@ -28,6 +28,14 @@ class ProductChangeReservationRepositoryImpl implements ProductChangeReservation
     private final MongoTemplate mongoTemplate;
 
     @Override
+    public boolean existsByProductIdAndCommandType(
+        String productId, ReservationCommandType commandType
+    ) {
+        return productChangeReservationMongoRepository
+            .existsByProductIdAndCommandType(productId, commandType);
+    }
+
+    @Override
     public void saveAll(List<ProductChangeReservation> reservations) {
         productChangeReservationMongoRepository.saveAll(reservations);
     }
