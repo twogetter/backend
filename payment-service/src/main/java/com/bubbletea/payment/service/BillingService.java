@@ -1,6 +1,5 @@
 package com.bubbletea.payment.service;
 
-import com.bubbletea.common.exception.ErrorCode;
 import com.bubbletea.payment.entity.Payment;
 import com.bubbletea.payment.entity.PaymentHistory;
 import com.bubbletea.payment.entity.PaymentMethod;
@@ -9,62 +8,66 @@ import com.bubbletea.payment.entity.enums.PaymentStatus;
 import com.bubbletea.payment.global.exception.PaymentErrorCode;
 import com.bubbletea.payment.global.exception.PaymentSystemException;
 import com.bubbletea.payment.infrastructure.kafka.PaymentEventPublisher;
+import com.bubbletea.payment.infrastructure.kafka.dto.BillingEvent;
 import com.bubbletea.payment.infrastructure.kafka.dto.PaymentResultEvent;
 import com.bubbletea.payment.repository.PaymentHistoryRepository;
 import com.bubbletea.payment.repository.PaymentMethodRepository;
 import com.bubbletea.payment.repository.PaymentRepository;
-import com.bubbletea.payment.repository.UserBrandpayAuthRepository;
-import com.bubbletea.payment.service.dto.PaymentReadyRequestDto;
-import com.bubbletea.payment.service.dto.data.PaymentConfirmData;
-import java.math.BigDecimal;
+import com.bubbletea.payment.service.dto.data.BillingConfirmData;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
-public class PaymentService {
+public class BillingService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentMethodRepository paymentMethodRepository;
+    private final PaymentHistoryRepository paymentHistoryRepository;
+    private final PaymentEventPublisher paymentEventPublisher;
 
-    @Transactional
-    public String createReadyPayment(PaymentReadyRequestDto dto, Long userId) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public BillingConfirmData createReadyPayment(Long userId, Long orderId, BillingEvent event) {
 
-        PaymentMethod paymentMethod = paymentMethodRepository.findById(dto.selectedMethodId())
+        PaymentMethod paymentMethod = paymentMethodRepository.findById(event.methodId())
                 .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.PAYMENT_METHOD_NOT_FOUND));
 
-        if (!Objects.equals(userId, paymentMethod.getUserBrandpayAuth().getUserId())) {
+        if(!Objects.equals(paymentMethod.getUserBrandpayAuth().getUserId(), userId)) {
             throw new PaymentSystemException(PaymentErrorCode.PAYMENT_METHOD_NOT_FOUND);
         }
 
-        String idempotencyKey = "payment-confirm-" + dto.orderId() + "-" + UUID.randomUUID();
+//        if (paymentRepository.existsByOrderId(orderId)) {
+//            throw new AlreadyProcessedException("이미 존재하는 주문건입니다.");
+//        }
+
+        UserBrandpayAuth auth = paymentMethod.getUserBrandpayAuth();
+        String idempotencyKey = "payment-confirm-" + event.orderId() + "-" + UUID.randomUUID();
 
         Payment payment = Payment.builder()
                 .userId(userId)
-                .orderId(dto.orderId())
-                .tossOrderId(dto.tossOrderId())
-                .totalAmount(new BigDecimal(dto.amount()))
-                .currency(dto.currency())
+                .orderId(orderId)
+                .tossOrderId(event.tossOrderId())
+                .totalAmount(event.totalAmount())
+                .currency(event.currency())
                 .paymentMethod(paymentMethod)
                 .status(PaymentStatus.READY)
                 .idempotencyKey(idempotencyKey)
                 .build();
 
-        paymentRepository.save(payment);
+        Payment savedPayment = paymentRepository.save(payment);
 
-        return paymentMethod.getTossMethodId();
+        return BillingConfirmData.builder()
+                .paymentId(savedPayment.getId())
+                .customerKey(auth.getCustomerKey())
+                .methodKey(paymentMethod.getTossMethodKey())
+                .idempotencyKey(savedPayment.getIdempotencyKey())
+                .build();
+
     }
 
-    @Transactional(readOnly = true)
-    public PaymentConfirmData getConfirmData(String tossOrderId) {
-        Payment payment = paymentRepository.findByTossOrderId(tossOrderId)
-                .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.UNAUTHORIZED_ACCESS));
 
-        return new PaymentConfirmData(payment.getId(), payment.getIdempotencyKey(), payment.getTotalAmount());
-    }
 }
