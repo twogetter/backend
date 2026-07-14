@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
@@ -25,6 +26,12 @@ import org.hibernate.type.SqlTypes;
         @UniqueConstraint(
             name = "uk_notifications_event_receiver",
             columnNames = {"event_id", "receiver_id"}
+        )
+    },
+    indexes = {
+        @Index(
+            name = "idx_notifications_receiver_created_id",
+            columnList = "receiver_id, created_at DESC, id DESC"
         )
     }
 )

@@ -1,6 +1,7 @@
 package com.bubbletea.notification.kafka.support;
 
 import com.bubbletea.notification.application.dto.NotificationCreateCommandDto;
+import com.bubbletea.notification.service.NotificationCreateService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.function.Function;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 public class NotificationEventMessageHandler {
 
   private final ObjectMapper objectMapper;
+  private final NotificationCreateService notificationCreateService;
 
   public <T> void handle(
       String message,
@@ -29,6 +31,8 @@ public class NotificationEventMessageHandler {
             eventClass.getSimpleName(), message);
         return;
       }
+
+      notificationCreateService.create(command);
 
       log.info(
           "Notification command 생성 완료. eventId={}, receiverId={}, notificationType={}",
