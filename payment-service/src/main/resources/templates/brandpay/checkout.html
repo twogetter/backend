@@ -13,11 +13,33 @@
   <body>
     <div class="wrapper">
       <div class="box_section" style="padding: 40px 30px 50px 30px; margin-top: 30px; margin-bottom: 50px; display: flex; flex-direction: column">
-        <button class="button" style="margin-top: 30px" onclick="requestPayment()">결제하기</button>
+
+        <div id="card-list-container" style="margin-bottom: 20px; padding: 15px; border: 1px solid #e5e8eb; border-radius: 8px;">
+          <p style="font-weight: bold; margin-bottom: 10px; color: #4e5968;">결제하실 카드를 선택해 주세요:</p>
+
+          <div th:if="${#lists.isEmpty(cards)}" style="color: #f04452; padding: 10px 0;">
+            등록된 결제 카드가 없습니다. 결제수단을 먼저 추가해 주세요.
+          </div>
+
+          <div th:unless="${#lists.isEmpty(cards)}" th:each="card, stat : ${cards}" style="margin: 12px 0; display: flex; align-items: center; gap: 8px;">
+            <input type="radio"
+                   th:id="'card-' + ${card.id}"
+                   name="toss-card"
+                   th:value="${card.id}"
+                   th:checked="${stat.first}"
+                   onchange="selectedMethodId=this.value"
+                   style="width: 18px; height: 18px; cursor: pointer;">
+            <label th:for="'card-' + ${card.id}" style="font-size: 15px; color: #333d4b; cursor: pointer;">
+              <th:block th:text="${card.displayName}">신한카드</th:block>
+              (<span th:text="${card.maskedNumber}">5151****</span>)
+            </label>
+          </div>
+        </div>
+
+        <button class="button" style="margin-top: 30px" onclick="requestDirectPayment()">선택한 카드로 결제하기</button>
         <button class="button" style="margin-top: 30px" onclick="addPaymentMethod()">결제수단추가</button>
         <button class="button" style="margin-top: 30px" onclick="changeOneTouchPay()">원터치페이설정변경</button>
         <button class="button" style="margin-top: 30px" onclick="changePassword()">비밀번호변경</button>
-        <button class="button" style="margin-top: 30px" onclick="isOneTouchPayEnabled()">원터치결제사용가능여부 조회</button>
         <button class="button" style="margin-top: 30px" onclick="openSettings()">브랜드페이 설정 열기</button>
         <button class="button" style="margin-top: 30px; background-color: #3182f6; color: white;" onclick="requestBillingAuth()">정기 자동결제 약관동의</button>
         <button class="button" style="margin-top: 30px; background-color: #f2f4f6; color: #f04452; border: 1px solid #f04452;" onclick="terminateBillingAuth()">전체 정기 자동결제 해지</button>
@@ -26,6 +48,7 @@
     <script th:inline="javascript">
       const clientKey = [[${clientKey}]];
       const customerKey = [[${customerKey}]];
+      const internalOrderId = [[${orderId}]];
       console.log("customerKey: " + customerKey);
       const tossPayments = TossPayments(clientKey);
 
@@ -34,21 +57,64 @@
         redirectUrl: [[${redirectUrl}]] + "/callback-auth?userId=" + [[${userId}]]
       });
 
-      async function requestPayment() {
-        // 결제를 요청하기 전에 orderId, amount를 서버에 저장하세요.
-        // 결제 과정에서 악의적으로 결제 금액이 바뀌는 것을 확인하는 용도입니다.
-        await brandpay.requestPayment({
-          amount: {
-            currency: "KRW",
-            value: 50000,
-          },
-          orderId: generateRandomString(),
-          orderName: "토스 티셔츠 외 2건",
-          successUrl: window.location.origin + `/brandpay/success.html?customerKey=${customerKey}&`,
-          failUrl: window.location.origin + "/fail.html",
-          customerEmail: "customer123@gmail.com",
-          customerName: "김토스",
-        });
+      let selectedMethodId = [[${not #lists.isEmpty(cards) ? cards[0].id : null}]];
+
+      async function requestDirectPayment() {
+        if (!selectedMethodId) {
+          alert("결제할 카드를 먼저 선택해 주세요.");
+          return;
+        }
+        console.log(selectedMethodId)
+
+        const uniqueOrderId = generateRandomString();
+        const paymentAmount = 50000;
+        const currency = "KRW";
+
+        try {
+          const response = await fetch("/brandpay/payments/ready", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-User-Id": [[${userId}]]
+            },
+            body: JSON.stringify({
+              orderId: internalOrderId,
+              tossOrderId: uniqueOrderId,
+              amount: paymentAmount,
+              currency: currency,
+              customerKey: customerKey,
+              selectedMethodId: selectedMethodId,
+            })
+          });
+
+          if (!response.ok) {
+            alert("주문 생성에 실패했습니다.");
+            return;
+          }
+
+          const result = await response.json();
+          const realTossMethodId = result.tossMethodId;
+
+          console.info("백엔드에서 받은 tossMethodId:", realTossMethodId);
+
+
+          await brandpay.requestPayment({
+            amount: {
+              currency: currency,
+              value: paymentAmount,
+            },
+            orderId: uniqueOrderId,
+            orderName: "토스 티셔츠 외 2건",
+            methodId: realTossMethodId,
+            successUrl: window.location.origin + `/brandpay/success.html?customerKey=${customerKey}`,
+            failUrl: window.location.origin + "/fail.html",
+            customerEmail: "customer123@gmail.com",
+            customerName: "김토스",
+          });
+
+        } catch (error) {
+          console.error("결제 프로세스 에러:", error);
+        }
       }
 
       async function addPaymentMethod() {
