@@ -7,14 +7,15 @@ import lombok.experimental.UtilityClass;
 
 
 @UtilityClass
-public class ProductOpenSchedulePolicy {
+public class ProductSchedulePolicy {
 
     private final int MINIMUM_LEAD_TIME_DAYS = 20;
 
-    public void validate(LocalDateTime openDate, LocalDateTime now) {
+    public void validate(LocalDateTime runDate, LocalDateTime now) {
         LocalDateTime minimumOpenDate = now.plusDays(MINIMUM_LEAD_TIME_DAYS);
-        if (openDate.isBefore(minimumOpenDate)) {
-            throw new AppException(ProductErrorCode.INVALID_OPEN_DATE);
+        if (runDate.isBefore(minimumOpenDate)) {
+            throw new AppException(ProductErrorCode.INVALID_RUN_DATE);
         }
     }
+
 }
