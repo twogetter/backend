@@ -16,7 +16,7 @@ public enum ProductApplicationErrorCode implements ErrorCode {
     ),
     INVALID_SEARCH_KEYWORD(
         HttpStatus.BAD_REQUEST,
-        "PRODUCT-INVALID_SEARCH_KEYWORD",
+        "PRODUCT-INVALID-SEARCH-KEYWORD",
         "올바르지 않은 검색 값입니다."
     );
 
