@@ -8,7 +8,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -51,6 +50,7 @@ public class PaymentMethod extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private PaymentMethodType type;
     private String tossMethodId;
+    private String tossMethodKey;
     private String displayName;
     private String maskedNumber;
 
@@ -66,6 +66,7 @@ public class PaymentMethod extends BaseEntity {
         this.displayName = incoming.displayName;
         this.status = incoming.status;
         this.isDefault = incoming.isDefault;
+        this.tossMethodId = incoming.tossMethodId;
     }
 
     public void registerBilling() {

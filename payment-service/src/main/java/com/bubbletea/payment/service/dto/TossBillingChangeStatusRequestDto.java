@@ -1,6 +1,6 @@
 package com.bubbletea.payment.service.dto;
 
-public record TossBillingRequestDto(
+public record TossBillingChangeStatusRequestDto(
         String customerKey
 ) {
 }
