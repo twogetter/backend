@@ -18,4 +18,6 @@ public interface ProductRepository {
 
     List<String> findDistinctActiveGroupNames();
 
+    List<Product> searchActiveProducts(ProductSearchCondition condition);
+
 }
