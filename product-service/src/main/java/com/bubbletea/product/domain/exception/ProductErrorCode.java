@@ -19,6 +19,11 @@ public enum ProductErrorCode implements ErrorCode {
         "PRODUCT-CONFLICT-DUPLICATE_ARTIST",
         "해당 아티스트는 이미 상품으로 등록되어 있습니다."
     ),
+    ALREADY_RESERVED(
+        HttpStatus.CONFLICT,
+        "PRODUCT-CONFLICT-ALREADY_RESERVED",
+        "예약이 이미 등록되어 있습니다."
+    ),
     ALREADY_DELETED(
         HttpStatus.CONFLICT,
         "PRODUCT-CONFLICT-ALREADY_DELETED",
