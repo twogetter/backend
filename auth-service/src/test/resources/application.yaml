@@ -1,0 +1,31 @@
+﻿spring:
+  application:
+    name: auth-service
+
+  cloud:
+    config:
+      enabled: false
+    discovery:
+      enabled: false
+
+  datasource:
+    url: jdbc:h2:mem:auth-test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+jwt:
+  secret: "bubbletea-auth-test-secret-key-must-be-longer-than-32-bytes"
+  access-token-expiration: 3600000
+  refresh-token-expiration: 1209600000
