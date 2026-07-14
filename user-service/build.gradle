@@ -2,13 +2,54 @@ apply plugin: 'org.springframework.boot'
 
 dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
     implementation project(':common-lib')
 
+    // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+    // Persistence
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // Spring Cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
 
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'com.h2database:h2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-tasks.register("prepareKotlinBuildScriptModel"){}
+tasks.named('test') {
+    useJUnitPlatform()
+
+    // 테스트에서는 실제 Config Server import를 사용하지 않는다.
+    systemProperty(
+            'spring.config.import',
+            'optional:file:./user-service-test.properties'
+    )
+
+    // 테스트 프로필 사용
+    systemProperty 'spring.profiles.active', 'test'
+
+    // Config Server 비활성화
+    systemProperty 'spring.cloud.config.enabled', 'false'
+    systemProperty 'spring.cloud.config.import-check.enabled', 'false'
+    systemProperty 'spring.cloud.config.fail-fast', 'false'
+
+    // Eureka 및 Discovery 비활성화
+    systemProperty 'spring.cloud.discovery.enabled', 'false'
+    systemProperty 'eureka.client.enabled', 'false'
+    systemProperty 'eureka.client.register-with-eureka', 'false'
+    systemProperty 'eureka.client.fetch-registry', 'false'
+}
+
+tasks.register('prepareKotlinBuildScriptModel') {
+}
