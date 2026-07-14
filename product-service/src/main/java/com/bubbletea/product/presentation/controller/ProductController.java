@@ -60,4 +60,13 @@ public class ProductController {
         return ApiResponse.success(productQueryService.getProductDetail(productId));
     }
 
+    @GetMapping("/search")
+    public ApiResponse<ProductListResponseDto> searchProducts(
+        @RequestParam String keyword,
+        @RequestParam(required = false) String cursor,
+        @RequestParam(defaultValue = "20") int size
+    ) {
+        return ApiResponse.success(productQueryService.searchProducts(keyword, cursor, size));
+    }
+
 }
