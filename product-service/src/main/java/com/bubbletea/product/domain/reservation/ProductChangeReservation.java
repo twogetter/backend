@@ -45,7 +45,7 @@ public class ProductChangeReservation extends BaseTimeEntity {
 
     private String failReason;
 
-    @Indexed(name = "ttl_expireAt")
+    @Indexed(name = "ttl_expireAt, expireAfterSeconds = 0")
     private LocalDateTime expireAt;
 
     private ProductChangeReservation(
