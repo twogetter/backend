@@ -64,7 +64,7 @@ public class ProductController {
     public ApiResponse<ProductListResponseDto> searchProducts(
         @RequestParam String keyword,
         @RequestParam(required = false) String cursor,
-        @RequestParam(defaultValue = "20") int size
+        @RequestParam(defaultValue = "20") @Min(1) @Max(30) int size
     ) {
         return ApiResponse.success(productQueryService.searchProducts(keyword, cursor, size));
     }
