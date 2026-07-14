@@ -13,6 +13,11 @@ public enum ProductApplicationErrorCode implements ErrorCode {
         HttpStatus.BAD_REQUEST,
         "PRODUCT-INVALID-CURSOR",
         "올바르지 않은 커서 값입니다."
+    ),
+    INVALID_SEARCH_KEYWORD(
+        HttpStatus.BAD_REQUEST,
+        "PRODUCT-INVALID_SEARCH_KEYWORD",
+        "올바르지 않은 검색 값입니다."
     );
 
     private final HttpStatus httpStatus;
