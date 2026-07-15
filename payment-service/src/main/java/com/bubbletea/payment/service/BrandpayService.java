@@ -45,20 +45,17 @@ public class BrandpayService {
                     .customerKey(userId + "_" + UUID.randomUUID().toString())
                     .build());
         }
-        return new BrandpayAuthDetailResponseDto(auth.getUserId(), auth.getCustomerKey());
+
+        List<BrandpayAuthDetailResponseDto.PaymentMethodDto> paymentMethods = paymentMethodRepository.findAllByUserBrandpayAuth_UserId(auth.getUserId()).stream()
+                .map(BrandpayAuthDetailResponseDto.PaymentMethodDto::of)
+                .toList();
+
+        return new BrandpayAuthDetailResponseDto(auth.getUserId(), auth.getCustomerKey(), paymentMethods);
     }
 
     @Transactional
     public ConnectBrandpayResponseDto connectBrandpay(ConnectBrandpayRequestDto request) {
         log.info("Connecting Brandpay for user: {}, customerKey: {}", request.userId(), request.customerKey());
-
-//        UserBrandpayAuth existingUserBrandpayAuth = userBrandpayAuthRepository
-//                .findByUserIdWithDeleted(request.userId()).orElse(null);
-//
-//        if (existingUserBrandpayAuth != null && existingUserBrandpayAuth.getDeletedAt() == null) {
-//            log.info("Using existing Brandpay token for user: {}", request.userId());
-//            return ConnectBrandpayResponseDto.of(existingUserBrandpayAuth);
-//        }
 
         try {
             TossAccessTokenResponseDto tokenResponse = tossBrandpayApiClient.getAccessToken(request.customerKey(), request.code());
@@ -103,7 +100,10 @@ public class BrandpayService {
     }
 
     @Transactional
-    public void syncPaymentMethods(UserBrandpayAuth userBrandpayAuth) throws Exception {
+    public void syncPaymentMethods(String customerKey) throws Exception {
+
+        UserBrandpayAuth userBrandpayAuth = userBrandpayAuthRepository.findByCustomerKey(customerKey).orElseThrow();
+
         TossRegisteredPaymentMethodsResponseDto methodResponse = tossBrandpayApiClient.getRegisteredPaymentMethods(userBrandpayAuth.getAccessToken());
 
         if (methodResponse == null || methodResponse.error() != null) {
@@ -124,19 +124,19 @@ public class BrandpayService {
         List<PaymentMethod> existingMethods = paymentMethodRepository.findAllByUserBrandpayAuth_UserId(userBrandpayAuth.getUserId());
 
         Map<String, PaymentMethod> existingMethodMap = existingMethods.stream()
-                .collect(Collectors.toMap(PaymentMethod::getTossMethodId, method -> method));
+                .collect(Collectors.toMap(PaymentMethod::getTossMethodKey, method -> method));
 
         List<PaymentMethod> toSave = new ArrayList<>();
         List<PaymentMethod> toDelete = new ArrayList<>();
 
         for (PaymentMethod incoming : incomingMethods) {
-            PaymentMethod existing = existingMethodMap.get(incoming.getTossMethodId());
+            PaymentMethod existing = existingMethodMap.get(incoming.getTossMethodKey());
 
             if (existing != null) {
                 existing.updateFrom(incoming);
                 toSave.add(existing);
 
-                existingMethodMap.remove(incoming.getTossMethodId());
+                existingMethodMap.remove(incoming.getTossMethodKey());
             } else {
                 toSave.add(incoming);
             }
@@ -210,7 +210,8 @@ public class BrandpayService {
 
             methods.add(PaymentMethod.builder()
                     .userBrandpayAuth(userBrandpayAuth)
-                    .tossMethodId(methodKey)
+                    .tossMethodId(card.id())
+                    .tossMethodKey(methodKey)
                     .displayName(card.cardName())
                     .maskedNumber(card.cardNumber())
                     .type(PaymentMethodType.NORMAL)
@@ -234,7 +235,8 @@ public class BrandpayService {
 
             methods.add(PaymentMethod.builder()
                     .userBrandpayAuth(userBrandpayAuth)
-                    .tossMethodId(methodKey)
+                    .tossMethodId(account.id())
+                    .tossMethodKey(methodKey)
                     .displayName(account.accountName())
                     .maskedNumber(account.accountNumber())
                     .type(PaymentMethodType.NORMAL)

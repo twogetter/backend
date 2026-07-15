@@ -1,13 +1,14 @@
 package com.bubbletea.payment.controller;
 
-import com.bubbletea.payment.entity.UserBrandpayAuth;
 import com.bubbletea.payment.global.exception.PaymentSystemException;
-import com.bubbletea.payment.repository.UserBrandpayAuthRepository;
+import com.bubbletea.payment.facade.PaymentConfirmFacade;
 import com.bubbletea.payment.service.BrandpayService;
 import com.bubbletea.payment.service.dto.ConnectBrandpayRequestDto;
 import com.bubbletea.payment.service.dto.ConnectBrandpayResponseDto;
-import com.bubbletea.payment.service.dto.TossBillingRequestDto;
+import com.bubbletea.payment.service.dto.PaymentReadyRequestDto;
+import com.bubbletea.payment.service.dto.TossBillingChangeStatusRequestDto;
 import com.bubbletea.payment.service.dto.TossWebhookRequestDto;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
@@ -27,7 +28,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class TossBrandpayController {
 
     private final BrandpayService brandpayService;
-    private final UserBrandpayAuthRepository userBrandpayAuthRepository;
+private final PaymentConfirmFacade paymentConfirmFacade;
+
+    @PostMapping("/payments/ready")
+    public ResponseEntity<Map<String, String>> readyPayment(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestBody PaymentReadyRequestDto dto) {
+        String tossMethodId = paymentConfirmFacade.ready(dto, userId);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "SUCCESS",
+                "tossMethodId", tossMethodId
+        ));
+    }
 
     @PostMapping("/webhooks/toss-brandpay")
     public ResponseEntity<String> handleTossWebhook(
@@ -39,8 +52,7 @@ public class TossBrandpayController {
         if ("METHOD_UPDATED".equals(eventType)) {
             String customerKey = request.data().customerKey();
 
-            UserBrandpayAuth userBrandpayAuth = userBrandpayAuthRepository.findByCustomerKey(customerKey).orElseThrow();
-            brandpayService.syncPaymentMethods(userBrandpayAuth);
+            brandpayService.syncPaymentMethods(customerKey);
         } else if ("CUSTOMER_STATUS_CHANGED".equals(eventType)) {
             String status = request.data().status();
             String customerKey = request.data().customerKey();
@@ -77,13 +89,13 @@ public class TossBrandpayController {
 
     @PostMapping("/billing-auth/success")
     public ResponseEntity<?> billingSuccess(
-            @RequestBody TossBillingRequestDto request) {
+            @RequestBody TossBillingChangeStatusRequestDto request) {
         brandpayService.billingAllow(request.customerKey());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/billing-auth/terminate")
-    public ResponseEntity<String> terminateBillingAuth(@RequestBody TossBillingRequestDto request) {
+    public ResponseEntity<String> terminateBillingAuth(@RequestBody TossBillingChangeStatusRequestDto request) {
         brandpayService.terminateBilling(request.customerKey());
         return ResponseEntity.ok("success");
     }

@@ -13,6 +13,7 @@ public record TossRegisteredPaymentMethodsResponseDto(
 ) {
 
     public record Card (
+            String id,
             String methodKey,
             String provider,
             String cardName,
@@ -22,6 +23,7 @@ public record TossRegisteredPaymentMethodsResponseDto(
     }
 
     public record Account(
+            String id,
             String methodKey,
             String bank,
             String accountName,
