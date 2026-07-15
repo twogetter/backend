@@ -7,6 +7,8 @@ import java.util.Optional;
 
 public interface ProductChangeReservationRepository {
 
+    boolean existsByProductIdAndReservationStatus(String productId, ReservationStatus status);
+
     void saveAll(List<ProductChangeReservation> reservations);
 
     Optional<ProductChangeReservation> claimNextPending(

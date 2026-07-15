@@ -9,15 +9,20 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum ProductErrorCode implements ErrorCode {
 
-    INVALID_OPEN_DATE(
+    INVALID_RUN_DATE(
         HttpStatus.BAD_REQUEST,
-        "PRODUCT-INVALID-OPEN_DATE",
-        "상품 오픈 예약은 최소 20일 전에 신청해야 합니다."
+        "PRODUCT-INVALID-RUN-DATE",
+        "상품 실행 예약은 최소 20일 전에 신청되어야 합니다."
     ),
     DUPLICATE_ARTIST_PRODUCT(
         HttpStatus.CONFLICT,
         "PRODUCT-CONFLICT-DUPLICATE_ARTIST",
         "해당 아티스트는 이미 상품으로 등록되어 있습니다."
+    ),
+    ALREADY_RESERVED(
+        HttpStatus.CONFLICT,
+        "PRODUCT-CONFLICT-ALREADY_RESERVED",
+        "예약이 이미 등록되어 있습니다."
     ),
     ALREADY_DELETED(
         HttpStatus.CONFLICT,

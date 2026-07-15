@@ -1,5 +1,6 @@
 package com.bubbletea.product.domain.reservation;
 
+import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.DELETION_DATE;
 import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.OPEN_DATE;
 import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.PRODUCT_NAME;
 
@@ -21,7 +22,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "product_change_reservations")
 @CompoundIndexes({
     @CompoundIndex(name = "idx_status_scheduledAt", def = "{'status': 1, 'scheduledAt': 1}"),
-    @CompoundIndex(name = "idx_productId_status", def = "{'productId': 1, 'status': 1}")
+    @CompoundIndex(name = "idx_productId_status", def = "{'productId': 1, 'status': 1}"),
+    @CompoundIndex(
+        name = "idx_productId_commandType_pending",
+        def = "{'productId': 1, 'commandType': 1}",
+        unique = true,
+        partialFilter = "{ 'status': 'PENDING' }"
+    )
 })
 public class ProductChangeReservation extends BaseTimeEntity {
 
@@ -44,7 +51,7 @@ public class ProductChangeReservation extends BaseTimeEntity {
 
     private String failReason;
 
-    @Indexed(name = "ttl_expireAt")
+    @Indexed(name = "ttl_expireAt", expireAfter = "1s")
     private LocalDateTime expireAt;
 
     private ProductChangeReservation(
@@ -80,6 +87,31 @@ public class ProductChangeReservation extends BaseTimeEntity {
             ReservationCommandType.ACTIVATE,
             Map.of(),
             openDate
+        );
+    }
+
+    public static ProductChangeReservation ofNotifyDeletionSchedule(
+        String productId,
+        LocalDateTime notifyAt,
+        String productName,
+        LocalDateTime deletionDate
+    ) {
+        return new ProductChangeReservation(
+            productId,
+            ReservationCommandType.NOTIFY_DELETION_SCHEDULE,
+            Map.of(PRODUCT_NAME, productName, DELETION_DATE, deletionDate.toString()),
+            notifyAt
+        );
+    }
+
+    public static ProductChangeReservation ofDeletion(
+        String productId, LocalDateTime deletionDate
+    ) {
+        return new ProductChangeReservation(
+            productId,
+            ReservationCommandType.DELETION,
+            Map.of(),
+            deletionDate
         );
     }
 
