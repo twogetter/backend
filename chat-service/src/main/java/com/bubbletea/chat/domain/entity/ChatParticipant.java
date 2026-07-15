@@ -68,7 +68,6 @@ public class ChatParticipant extends BaseEntity {
         .build();
   }
 
-  // TODO: 이건 다음 이슈에서 사용
   public static ChatParticipant createFanParticipant(Long roomId, Long userId) {
     return ChatParticipant.builder()
         .roomId(roomId)
