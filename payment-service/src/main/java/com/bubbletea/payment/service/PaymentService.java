@@ -38,8 +38,17 @@ public class PaymentService {
         PaymentMethod paymentMethod = paymentMethodRepository.findById(dto.selectedMethodId())
                 .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.PAYMENT_METHOD_NOT_FOUND));
 
+        //TODO: 주무도메인과 통신 후 검증 필요
+
         if (!Objects.equals(userId, paymentMethod.getUserBrandpayAuth().getUserId())) {
             throw new PaymentSystemException(PaymentErrorCode.PAYMENT_METHOD_NOT_FOUND);
+        }
+
+        Payment existingPayment = paymentRepository.findByTossOrderId(dto.tossOrderId()).orElse(null);
+
+        if(existingPayment != null &&
+                Objects.equals(existingPayment.getUserId(), userId)) {
+            return existingPayment.getPaymentMethod().getTossMethodId();
         }
 
         String idempotencyKey = "payment-confirm-" + dto.orderId() + "-" + UUID.randomUUID();
@@ -63,7 +72,7 @@ public class PaymentService {
     @Transactional(readOnly = true)
     public PaymentConfirmData getConfirmData(String tossOrderId) {
         Payment payment = paymentRepository.findByTossOrderId(tossOrderId)
-                .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.UNAUTHORIZED_ACCESS));
+                .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
         return new PaymentConfirmData(payment.getId(), payment.getIdempotencyKey(), payment.getTotalAmount());
     }
