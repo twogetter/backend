@@ -15,7 +15,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionOperations;
 
 @Slf4j
 @Service
@@ -28,9 +28,25 @@ public class NotificationCreateService {
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final NotificationTemplateRenderer notificationTemplateRenderer;
   private final ApplicationEventPublisher eventPublisher;
+  private final TransactionOperations transactionOperations;
 
-  @Transactional
   public void create(NotificationCreateCommandDto command) {
+    try {
+      transactionOperations.executeWithoutResult(ignored -> createInTransaction(command));
+    } catch (DataIntegrityViolationException exception) {
+      if (isEventReceiverUniqueConstraintViolation(exception)) {
+        log.info(
+            "중복 알림 이벤트 저장 건너뜀. eventId={}, receiverId={}",
+            command.eventId(),
+            command.receiverId()
+        );
+        return;
+      }
+      throw exception;
+    }
+  }
+
+  private void createInTransaction(NotificationCreateCommandDto command) {
     if (notificationRepository.existsByEventIdAndReceiverId(command.eventId(), command.receiverId())) {
       log.info(
           "중복 알림 이벤트 건너뜀. eventId={}, receiverId={}",
@@ -46,34 +62,21 @@ public class NotificationCreateService {
             NotificationErrorCode.NOTIFICATION_TEMPLATE_NOT_FOUND
         ));
 
-    Notification notification;
-    try {
-      notification = notificationRepository.saveAndFlush(Notification.builder()
-          .receiverId(command.receiverId())
-          .eventId(command.eventId())
-          .notificationType(command.notificationType())
-          .title(notificationTemplateRenderer.render(
-              template.getTitleTemplate(),
-              command.variables()
-          ))
-          .contents(notificationTemplateRenderer.render(
-              template.getContentsTemplate(),
-              command.variables()
-          ))
-          .linkUrl(command.linkUrl())
-          .payload(command.payload())
-          .build());
-    } catch (DataIntegrityViolationException exception) {
-      if (isEventReceiverUniqueConstraintViolation(exception)) {
-        log.info(
-            "중복 알림 이벤트 저장 건너뜀. eventId={}, receiverId={}",
-            command.eventId(),
-            command.receiverId()
-        );
-        return;
-      }
-      throw exception;
-    }
+    Notification notification = notificationRepository.saveAndFlush(Notification.builder()
+        .receiverId(command.receiverId())
+        .eventId(command.eventId())
+        .notificationType(command.notificationType())
+        .title(notificationTemplateRenderer.render(
+            template.getTitleTemplate(),
+            command.variables()
+        ))
+        .contents(notificationTemplateRenderer.render(
+            template.getContentsTemplate(),
+            command.variables()
+        ))
+        .linkUrl(command.linkUrl())
+        .payload(command.payload())
+        .build());
 
     eventPublisher.publishEvent(new NotificationCreatedEvent(
         notification.getReceiverId(),
