@@ -11,7 +11,9 @@ import com.bubbletea.notification.service.dto.NotificationResponseDto;
 import com.bubbletea.notification.service.event.NotificationCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class NotificationCreateService {
+
+  private static final String EVENT_RECEIVER_UNIQUE_CONSTRAINT = "uk_notifications_event_receiver";
 
   private final NotificationRepository notificationRepository;
   private final NotificationTemplateRepository notificationTemplateRepository;
@@ -42,25 +46,51 @@ public class NotificationCreateService {
             NotificationErrorCode.NOTIFICATION_TEMPLATE_NOT_FOUND
         ));
 
-    Notification notification = notificationRepository.save(Notification.builder()
-        .receiverId(command.receiverId())
-        .eventId(command.eventId())
-        .notificationType(command.notificationType())
-        .title(notificationTemplateRenderer.render(
-            template.getTitleTemplate(),
-            command.variables()
-        ))
-        .contents(notificationTemplateRenderer.render(
-            template.getContentsTemplate(),
-            command.variables()
-        ))
-        .linkUrl(command.linkUrl())
-        .payload(command.payload())
-        .build());
+    Notification notification;
+    try {
+      notification = notificationRepository.saveAndFlush(Notification.builder()
+          .receiverId(command.receiverId())
+          .eventId(command.eventId())
+          .notificationType(command.notificationType())
+          .title(notificationTemplateRenderer.render(
+              template.getTitleTemplate(),
+              command.variables()
+          ))
+          .contents(notificationTemplateRenderer.render(
+              template.getContentsTemplate(),
+              command.variables()
+          ))
+          .linkUrl(command.linkUrl())
+          .payload(command.payload())
+          .build());
+    } catch (DataIntegrityViolationException exception) {
+      if (isEventReceiverUniqueConstraintViolation(exception)) {
+        log.info(
+            "중복 알림 이벤트 저장 건너뜀. eventId={}, receiverId={}",
+            command.eventId(),
+            command.receiverId()
+        );
+        return;
+      }
+      throw exception;
+    }
 
     eventPublisher.publishEvent(new NotificationCreatedEvent(
         notification.getReceiverId(),
         NotificationResponseDto.from(notification)
     ));
+  }
+
+  private boolean isEventReceiverUniqueConstraintViolation(DataIntegrityViolationException exception) {
+    Throwable cause = exception;
+    while (cause != null) {
+      if (cause instanceof ConstraintViolationException constraintViolationException) {
+        return EVENT_RECEIVER_UNIQUE_CONSTRAINT.equals(
+            constraintViolationException.getConstraintName()
+        );
+      }
+      cause = cause.getCause();
+    }
+    return false;
   }
 }

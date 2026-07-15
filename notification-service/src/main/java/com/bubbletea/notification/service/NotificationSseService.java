@@ -83,15 +83,10 @@ public class NotificationSseService {
   }
 
   private void removeEmitter(Long receiverId, SseEmitter emitter) {
-    Set<SseEmitter> receiverEmitters = emitters.get(receiverId);
-    if (receiverEmitters == null) {
-      return;
-    }
-
-    receiverEmitters.remove(emitter);
-    if (receiverEmitters.isEmpty()) {
-      emitters.remove(receiverId, receiverEmitters);
-    }
+    emitters.computeIfPresent(receiverId, (ignored, receiverEmitters) -> {
+      receiverEmitters.remove(emitter);
+      return receiverEmitters.isEmpty() ? null : receiverEmitters;
+    });
   }
 
   private void validateReceiverId(Long receiverId) {
