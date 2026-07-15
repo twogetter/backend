@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: gateway-server
+
+  cloud:
+    config:
+      enabled: false
+
+    discovery:
+      enabled: false
+
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: false
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+jwt:
+  secret: "bubbletea-gateway-test-secret-key-must-be-longer-than-32-bytes"
+
+management:
+  endpoint:
+    gateway:
+      enabled: false
