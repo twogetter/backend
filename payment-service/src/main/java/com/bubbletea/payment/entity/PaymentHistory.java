@@ -47,11 +47,11 @@ public class PaymentHistory extends BaseEntity {
         return history;
     }
 
-    public static PaymentHistory createFailHistory(Payment payment, PaymentStatus previousStatus, String errorCode, String errorMessage) {
+    public static PaymentHistory createFailHistory(Payment payment, PaymentStatus previousStatus, PaymentStatus status, String errorCode, String errorMessage) {
         PaymentHistory history = new PaymentHistory();
         history.payment = payment;
         history.previousStatus = previousStatus;
-        history.currentStatus = PaymentStatus.FAILED;
+        history.currentStatus = status;
         history.errorCode = errorCode;
         history.errorMessage = errorMessage;
         return history;

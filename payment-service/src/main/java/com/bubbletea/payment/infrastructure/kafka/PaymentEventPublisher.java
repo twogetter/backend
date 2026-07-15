@@ -23,6 +23,12 @@ public class PaymentEventPublisher {
     private static final String FAILED_ORDER_TOPIC = "order.payment.paymentFailed";
     private static final String FAILED_NOTIFICATION_TOPIC = "notification.payment.paymentFail";
 
+    private static final String HOLD_ORDER_TOPIC = "order.payment.paymentHold";
+    private static final String HOLD_NOTIFICATION_TOPIC = "notification.payment.paymentHold";
+    private static final String CANCEL_HOLD_ORDER_TOPIC = "order.payment.paymentCancelHold";
+    private static final String CANCEL_HOLD_NOTIFICATION_TOPIC = "notification.payment.paymentCancelHold";
+
+
     private static final String HEADER_DOMAIN = "X-Domain";
     private static final String HEADER_EVENT_TYPE = "X-Event-Type";
     private static final String HEADER_EVENT_TIMESTAMP = "X-Event-Timestamp";
@@ -35,6 +41,16 @@ public class PaymentEventPublisher {
     public void publishPaymentFailed(PaymentResultEvent event) {
         publish(event, FAILED_ORDER_TOPIC, "paymentFail");
         publish(event, FAILED_NOTIFICATION_TOPIC, "paymentFail");
+    }
+
+    public void publishPaymentHold(PaymentResultEvent event) {
+        publish(event, HOLD_ORDER_TOPIC, "paymentHold");
+        publish(event, HOLD_NOTIFICATION_TOPIC, "paymentHold");
+    }
+
+    public void publishPaymentCancelHold(PaymentResultEvent event) {
+        publish(event, CANCEL_HOLD_ORDER_TOPIC, "paymentCancelHold");
+        publish(event, CANCEL_HOLD_NOTIFICATION_TOPIC, "paymentCancelHold");
     }
 
     private void publish(PaymentResultEvent event, String topic, String eventType) {

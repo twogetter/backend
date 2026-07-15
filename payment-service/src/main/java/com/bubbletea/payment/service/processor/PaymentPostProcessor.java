@@ -58,7 +58,7 @@ public class PaymentPostProcessor {
         PaymentStatus previousStatus = payment.getStatus();
         payment.changeStatus(PaymentStatus.FAILED);
 
-        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, errorCode.toString(),
+        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.FAILED, errorCode.toString(),
                 errorMessage);
         paymentHistoryRepository.save(history);
 
@@ -82,7 +82,7 @@ public class PaymentPostProcessor {
         PaymentStatus previousStatus = payment.getStatus();
         payment.changeStatus(PaymentStatus.UNKNOWN_HOLD);
 
-        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, errorCode.toString(),
+        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.UNKNOWN_HOLD, errorCode.toString(),
                 errorMessage);
         paymentHistoryRepository.save(history);
 
@@ -94,7 +94,7 @@ public class PaymentPostProcessor {
                 "PaymentUnknownEvent",
                 errorMessage
         );
-        paymentEventPublisher.publishPaymentFailed(event);
+        paymentEventPublisher.publishPaymentHold(event);
     }
 
     @Transactional
@@ -105,7 +105,7 @@ public class PaymentPostProcessor {
         PaymentStatus previousStatus = payment.getStatus();
         payment.changeStatus(PaymentStatus.CANCEL_UNKNOWN_HOLD);
 
-        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, errorCode.toString(),
+        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.CANCEL_UNKNOWN_HOLD, errorCode.toString(),
                 errorMessage);
         paymentHistoryRepository.save(history);
 
@@ -117,7 +117,7 @@ public class PaymentPostProcessor {
                 "PaymentCancelUnknownEvent",
                 errorMessage
         );
-        paymentEventPublisher.publishPaymentFailed(event);
+        paymentEventPublisher.publishPaymentCancelHold(event);
     }
 
 }
