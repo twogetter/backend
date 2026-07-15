@@ -7,7 +7,7 @@ import com.bubbletea.product.domain.product.Product;
 import com.bubbletea.product.domain.product.ProductRepository;
 import com.bubbletea.product.domain.reservation.ProductChangeReservation;
 import com.bubbletea.product.domain.reservation.ProductChangeReservationRepository;
-import com.bubbletea.product.domain.reservation.ReservationCommandType;
+import com.bubbletea.product.domain.reservation.ReservationStatus;
 import com.bubbletea.product.presentation.dto.ProductDeletionReservationRequestDto;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,8 +27,8 @@ public class ProductReservationService {
         Product product = productRepository.findById(productId)
             .orElseThrow(() -> new AppException(ProductErrorCode.PRODUCT_NOT_FOUND));
 
-        if (productChangeReservationRepository.existsByProductIdAndCommandType(
-            productId, ReservationCommandType.DELETION)
+        if (productChangeReservationRepository.existsByProductIdAndReservationStatus(
+            productId, ReservationStatus.PENDING)
         ) {
             throw new AppException(ProductErrorCode.ALREADY_RESERVED);
         }

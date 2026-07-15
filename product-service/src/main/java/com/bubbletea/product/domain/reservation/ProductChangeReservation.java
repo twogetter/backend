@@ -22,7 +22,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "product_change_reservations")
 @CompoundIndexes({
     @CompoundIndex(name = "idx_status_scheduledAt", def = "{'status': 1, 'scheduledAt': 1}"),
-    @CompoundIndex(name = "idx_productId_status", def = "{'productId': 1, 'status': 1}")
+    @CompoundIndex(name = "idx_productId_status", def = "{'productId': 1, 'status': 1}"),
+    @CompoundIndex(
+        name = "idx_productId_commandType_pending",
+        def = "{'productId': 1, 'commandType': 1}",
+        unique = true,
+        partialFilter = "{ 'status': 'PENDING' }"
+    )
 })
 public class ProductChangeReservation extends BaseTimeEntity {
 

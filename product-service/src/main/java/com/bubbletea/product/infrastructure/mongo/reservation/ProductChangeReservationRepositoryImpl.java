@@ -28,11 +28,11 @@ class ProductChangeReservationRepositoryImpl implements ProductChangeReservation
     private final MongoTemplate mongoTemplate;
 
     @Override
-    public boolean existsByProductIdAndCommandType(
-        String productId, ReservationCommandType commandType
+    public boolean existsByProductIdAndReservationStatus(
+        String productId, ReservationStatus status
     ) {
         return productChangeReservationMongoRepository
-            .existsByProductIdAndCommandType(productId, commandType);
+            .existsByProductIdAndStatus(productId, status);
     }
 
     @Override

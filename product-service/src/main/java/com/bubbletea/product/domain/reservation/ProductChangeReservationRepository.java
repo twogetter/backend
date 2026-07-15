@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public interface ProductChangeReservationRepository {
 
-    boolean existsByProductIdAndCommandType(String productId, ReservationCommandType commandType);
+    boolean existsByProductIdAndReservationStatus(String productId, ReservationStatus status);
 
     void saveAll(List<ProductChangeReservation> reservations);
 
