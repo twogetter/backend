@@ -1,6 +1,7 @@
 package com.bubbletea.chat.domain.repository;
 
 import com.bubbletea.chat.domain.entity.ChatParticipant;
+import com.bubbletea.chat.domain.enums.ParticipantRole;
 import com.bubbletea.chat.domain.enums.ParticipantStatus;
 import java.util.List;
 import java.util.Optional;
@@ -17,4 +18,6 @@ public interface ChatParticipantRepository extends JpaRepository<ChatParticipant
   List<ChatParticipant> findAllByRoomIdAndStatus(Long roomId, ParticipantStatus status);
 
   List<ChatParticipant> findAllByUserIdAndStatus(Long userId, ParticipantStatus status);
+
+  List<ChatParticipant> findAllByUserIdAndRoleAndStatus(Long userId, ParticipantRole role, ParticipantStatus status);
 }
