@@ -3,6 +3,7 @@ package com.bubbletea.payment.service.processor;
 import com.bubbletea.common.exception.ErrorCode;
 import com.bubbletea.payment.entity.Payment;
 import com.bubbletea.payment.entity.PaymentHistory;
+import com.bubbletea.payment.entity.enums.HistoryType;
 import com.bubbletea.payment.entity.enums.PaymentStatus;
 import com.bubbletea.payment.global.exception.PaymentErrorCode;
 import com.bubbletea.payment.global.exception.PaymentSystemException;
@@ -11,6 +12,7 @@ import com.bubbletea.payment.infrastructure.kafka.dto.PaymentResultEvent;
 import com.bubbletea.payment.repository.PaymentHistoryRepository;
 import com.bubbletea.payment.repository.PaymentMethodRepository;
 import com.bubbletea.payment.repository.PaymentRepository;
+import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -35,7 +37,7 @@ public class PaymentPostProcessor {
 
         payment.complete(paymentKey, PaymentStatus.PAID);
 
-        PaymentHistory history = PaymentHistory.createSuccessHistory(payment, previousStatus);
+        PaymentHistory history = PaymentHistory.createSuccessHistory(payment, previousStatus, PaymentStatus.PAID, HistoryType.PAYMENT_REQUEST);
         paymentHistoryRepository.save(history);
 
         PaymentResultEvent event = new PaymentResultEvent(
@@ -58,7 +60,7 @@ public class PaymentPostProcessor {
         PaymentStatus previousStatus = payment.getStatus();
         payment.changeStatus(PaymentStatus.FAILED);
 
-        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.FAILED, errorCode.toString(),
+        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.FAILED, HistoryType.PAYMENT_REQUEST, errorCode.toString(),
                 errorMessage);
         paymentHistoryRepository.save(history);
 
@@ -71,7 +73,6 @@ public class PaymentPostProcessor {
                 errorMessage
         );
         paymentEventPublisher.publishPaymentFailed(event);
-
     }
 
     @Transactional
@@ -82,7 +83,7 @@ public class PaymentPostProcessor {
         PaymentStatus previousStatus = payment.getStatus();
         payment.changeStatus(PaymentStatus.UNKNOWN_HOLD);
 
-        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.UNKNOWN_HOLD, errorCode.toString(),
+        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.UNKNOWN_HOLD, HistoryType.PAYMENT_REQUEST, errorCode.toString(),
                 errorMessage);
         paymentHistoryRepository.save(history);
 
@@ -98,6 +99,57 @@ public class PaymentPostProcessor {
     }
 
     @Transactional
+    public void completeCancelPayment(Long paymentId, String paymentKey, Long cancelAmount) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+
+        PaymentStatus previousStatus = payment.getStatus();
+
+        payment.complete(paymentKey, PaymentStatus.CANCELLED);
+
+        BigDecimal updatedRefundableAmount = payment.getRefundableAmount()
+                .subtract(BigDecimal.valueOf(cancelAmount));
+        payment.updateRefundableAmount(updatedRefundableAmount);
+
+        PaymentHistory history = PaymentHistory.createSuccessHistory(payment, previousStatus, PaymentStatus.CANCELLED, HistoryType.CANCEL_REQUEST);
+        paymentHistoryRepository.save(history);
+
+        PaymentResultEvent event = new PaymentResultEvent(
+                payment.getOrderId(),
+                paymentId,
+                payment.getTotalAmount(),
+                paymentKey,
+                "PaymentCancelled",
+                ""
+        );
+        paymentEventPublisher.publishCancelPaymentSuccess(event);
+
+    }
+
+    @Transactional
+    public void failCancelPayment(Long paymentId, ErrorCode errorCode, String errorMessage) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+
+        PaymentStatus previousStatus = payment.getStatus();
+//        payment.changeStatus(PaymentStatus.FAILED);
+
+        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.FAILED, HistoryType.CANCEL_REQUEST, errorCode.toString(),
+                errorMessage);
+        paymentHistoryRepository.save(history);
+
+        PaymentResultEvent event = new PaymentResultEvent(
+                payment.getOrderId(),
+                paymentId,
+                payment.getTotalAmount(),
+                "",
+                "PaymentCancelFailed",
+                errorMessage
+        );
+        paymentEventPublisher.publishCancelPaymentFailed(event);
+    }
+
+    @Transactional
     public void holdCancelPayment(Long paymentId, ErrorCode errorCode, String errorMessage) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.PAYMENT_NOT_FOUND));
@@ -105,7 +157,7 @@ public class PaymentPostProcessor {
         PaymentStatus previousStatus = payment.getStatus();
         payment.changeStatus(PaymentStatus.CANCEL_UNKNOWN_HOLD);
 
-        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.CANCEL_UNKNOWN_HOLD, errorCode.toString(),
+        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.CANCEL_UNKNOWN_HOLD, HistoryType.CANCEL_REQUEST, errorCode.toString(),
                 errorMessage);
         paymentHistoryRepository.save(history);
 
@@ -117,7 +169,7 @@ public class PaymentPostProcessor {
                 "PaymentCancelUnknownEvent",
                 errorMessage
         );
-        paymentEventPublisher.publishPaymentCancelHold(event);
+        paymentEventPublisher.publishCancelPaymentHold(event);
     }
 
 }

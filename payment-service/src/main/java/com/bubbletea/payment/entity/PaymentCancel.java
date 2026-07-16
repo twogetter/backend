@@ -1,5 +1,6 @@
 package com.bubbletea.payment.entity;
 
+import com.bubbletea.payment.entity.enums.CancelStatus;
 import com.bubbletea.payment.global.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,12 +13,16 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "payment_cancels")
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PaymentCancel extends BaseEntity {
     @Id
@@ -34,5 +39,11 @@ public class PaymentCancel extends BaseEntity {
     private BigDecimal cancelAmount;
 
     private String cancelReason;
-    private String transactionKey;
+    private String idempotencyKey;
+
+    private CancelStatus status;
+
+    public void changeStatus(CancelStatus cancelStatus) {
+        this.status = cancelStatus;
+    }
 }

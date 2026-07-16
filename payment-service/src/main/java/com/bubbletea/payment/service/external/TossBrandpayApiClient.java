@@ -6,6 +6,7 @@ import com.bubbletea.payment.global.exception.PaymentSystemException;
 import com.bubbletea.payment.global.exception.PaymentTossApiException;
 import com.bubbletea.payment.service.dto.PaymentConfirmRequestDto;
 import com.bubbletea.payment.service.dto.PaymentConfirmResponseDto;
+import com.bubbletea.payment.service.dto.PaymentCancelResponseDto;
 import com.bubbletea.payment.service.dto.TossAccessTokenResponseDto;
 import com.bubbletea.payment.service.dto.TossBillingChangeStatusRequestDto;
 import com.bubbletea.payment.service.dto.BillingRequestDto;
@@ -152,6 +153,52 @@ public class TossBrandpayApiClient {
         log.error("정기결제 최종 재시도 실패 또는 타임아웃 발생 (Fallback 진입) - OrderId: {}, Idempotency: {}, Reason: {}",
                 dto.orderId(), idempotencyKey, e.getMessage());
 
+        throw new PaymentTossApiException(PaymentErrorCode.EXTERNAL_SERVER_ERROR);
+    }
+
+    @Retry(name = "cancelRetry", fallbackMethod = "cancelPaymentFallback")
+    public PaymentCancelResponseDto cancelPayment(
+            String paymentKey,
+            String idempotencyKey,
+            Long cancelAmount,
+            String cancelReason
+    ) {
+        String encodedToken = getBasicAuthHeader();
+
+        log.info("Toss Payment Cancel Request - PaymentKey: {}, Idempotency: {}, CancelAmount: {}",
+    paymentKey, idempotencyKey, cancelAmount);
+
+        Map<String, Object> requestData = new HashMap<>();
+        requestData.put("cancelReason", cancelReason);
+        if (cancelAmount != null) {
+            requestData.put("cancelAmount", cancelAmount);
+        }
+
+        try {
+            return tossFeignClient.cancelPayment(encodedToken, idempotencyKey, paymentKey, requestData);
+        } catch (FeignException e) {
+            if (e.status() >= 500 || e.status() == 429 || e.status() == 408) {
+                log.warn("토스 결제 취소 API 일시적 오류 또는 타임아웃. 재시도를 트리거합니다. Status: {}", e.status());
+                throw e;
+            }
+
+            log.error("Toss Cancel Client Error (4xx): {}", e.contentUTF8());
+            throw new PaymentTossApiException(PaymentErrorCode.TOSS_API_ERROR);
+        } catch (Exception e) {
+            log.error("Toss Cancel System Error - 알 수 없는 내부 예외 발생", e);
+            throw new PaymentSystemException(PaymentErrorCode.UNAUTHORIZED_ACCESS);
+        }
+    }
+
+    public PaymentCancelResponseDto cancelPaymentFallback(
+            String paymentKey,
+            String idempotencyKey,
+            Long cancelAmount,
+            String cancelReason,
+            FeignException e
+    ) {
+        log.error("결제 취소 최종 재시도 실패 또는 타임아웃 발생 (Fallback 진입) - PaymentKey: {}, Reason: {}",
+                paymentKey, e.getMessage());
         throw new PaymentTossApiException(PaymentErrorCode.EXTERNAL_SERVER_ERROR);
     }
 
