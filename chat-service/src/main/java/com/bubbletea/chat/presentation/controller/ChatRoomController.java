@@ -1,9 +1,9 @@
 package com.bubbletea.chat.presentation.controller;
 
+import com.bubbletea.chat.application.dto.ChatRoomResponseDto;
 import com.bubbletea.chat.application.service.ChatRoomService;
 import com.bubbletea.chat.domain.enums.ParticipantRole;
 import com.bubbletea.chat.domain.exception.ChatErrorCode;
-import com.bubbletea.chat.presentation.controller.dto.ChatRoomResponseDto;
 import com.bubbletea.common.exception.AppException;
 import com.bubbletea.common.response.ApiResponse;
 import java.util.List;

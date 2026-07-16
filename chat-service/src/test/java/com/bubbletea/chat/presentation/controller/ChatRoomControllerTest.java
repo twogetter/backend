@@ -5,11 +5,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.bubbletea.chat.application.dto.ChatRoomResponseDto;
 import com.bubbletea.chat.application.service.ChatRoomService;
 import com.bubbletea.chat.domain.enums.ChatRoomStatus;
 import com.bubbletea.chat.domain.enums.ParticipantRole;
 import com.bubbletea.chat.domain.enums.ParticipantStatus;
-import com.bubbletea.chat.presentation.controller.dto.ChatRoomResponseDto;
 import com.bubbletea.common.exception.GlobalExceptionHandler;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;

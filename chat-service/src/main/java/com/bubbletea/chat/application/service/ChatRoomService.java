@@ -1,5 +1,6 @@
 package com.bubbletea.chat.application.service;
 
+import com.bubbletea.chat.application.dto.ChatRoomResponseDto;
 import com.bubbletea.chat.domain.entity.ChatParticipant;
 import com.bubbletea.chat.domain.entity.ChatRoom;
 import com.bubbletea.chat.domain.enums.ChatRoomStatus;
@@ -8,7 +9,6 @@ import com.bubbletea.chat.domain.enums.ParticipantStatus;
 import com.bubbletea.chat.domain.exception.ChatErrorCode;
 import com.bubbletea.chat.domain.repository.ChatParticipantRepository;
 import com.bubbletea.chat.domain.repository.ChatRoomRepository;
-import com.bubbletea.chat.presentation.controller.dto.ChatRoomResponseDto;
 import com.bubbletea.common.exception.AppException;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +63,8 @@ public class ChatRoomService {
         .map(ChatParticipant::getRoomId)
         .toList();
 
-    List<ChatRoom> rooms = chatRoomRepository.findAllByIdInAndStatus(roomIds, ChatRoomStatus.ACTIVE);
+    List<ChatRoom> rooms = chatRoomRepository.findAllByIdInAndStatus(roomIds,
+        ChatRoomStatus.ACTIVE);
 
     Map<Long, ChatRoom> roomMap = rooms.stream()
         .collect(Collectors.toMap(ChatRoom::getId, Function.identity()));

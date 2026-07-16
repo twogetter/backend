@@ -1,4 +1,4 @@
-package com.bubbletea.chat.presentation.controller.dto;
+package com.bubbletea.chat.application.dto;
 
 import com.bubbletea.chat.domain.entity.ChatParticipant;
 import com.bubbletea.chat.domain.entity.ChatRoom;
