@@ -31,6 +31,12 @@ public enum ChatErrorCode implements ErrorCode {
       HttpStatus.CONFLICT,
       "CHAT-DUPLICATE-PARTICIPANT",
       "이미 채팅방에 참여 중인 사용자입니다."
+  ),
+
+  INVALID_ROLE(
+      HttpStatus.BAD_REQUEST,
+      "CHAT-INVALID-ROLE",
+      "유효하지 않은 참여자 역할입니다."
   );
 
   private final HttpStatus httpStatus;

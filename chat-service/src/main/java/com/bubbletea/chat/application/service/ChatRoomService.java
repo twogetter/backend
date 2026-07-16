@@ -1,9 +1,19 @@
 package com.bubbletea.chat.application.service;
 
+import com.bubbletea.chat.domain.entity.ChatParticipant;
 import com.bubbletea.chat.domain.entity.ChatRoom;
+import com.bubbletea.chat.domain.enums.ChatRoomStatus;
+import com.bubbletea.chat.domain.enums.ParticipantRole;
+import com.bubbletea.chat.domain.enums.ParticipantStatus;
 import com.bubbletea.chat.domain.exception.ChatErrorCode;
+import com.bubbletea.chat.domain.repository.ChatParticipantRepository;
 import com.bubbletea.chat.domain.repository.ChatRoomRepository;
+import com.bubbletea.chat.presentation.controller.dto.ChatRoomResponseDto;
 import com.bubbletea.common.exception.AppException;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -17,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChatRoomService {
 
   private final ChatRoomRepository chatRoomRepository;
+  private final ChatParticipantRepository chatParticipantRepository;
   private final ChatRoomReader chatRoomReader;
   private final ChatRoomWriter chatRoomWriter;
 
@@ -37,5 +48,29 @@ public class ChatRoomService {
   public ChatRoom getChatRoomByArtistId(final Long artistId) {
     return chatRoomRepository.findByArtistId(artistId)
         .orElseThrow(() -> new AppException(ChatErrorCode.CHAT_ROOM_NOT_FOUND));
+  }
+
+  public List<ChatRoomResponseDto> getAll(Long userId, ParticipantRole role) {
+    List<ChatParticipant> participants = chatParticipantRepository.findAllByUserIdAndRoleAndStatus(
+        userId, role, ParticipantStatus.ACTIVE
+    );
+
+    if (participants.isEmpty()) {
+      return List.of();
+    }
+
+    List<Long> roomIds = participants.stream()
+        .map(ChatParticipant::getRoomId)
+        .toList();
+
+    List<ChatRoom> rooms = chatRoomRepository.findAllByIdInAndStatus(roomIds, ChatRoomStatus.ACTIVE);
+
+    Map<Long, ChatRoom> roomMap = rooms.stream()
+        .collect(Collectors.toMap(ChatRoom::getId, Function.identity()));
+
+    return participants.stream()
+        .filter(p -> roomMap.containsKey(p.getRoomId()))
+        .map(p -> ChatRoomResponseDto.from(roomMap.get(p.getRoomId()), p))
+        .toList();
   }
 }
