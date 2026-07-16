@@ -1,0 +1,12 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: ${NOTIFICATION_DB_URL:jdbc:postgresql://localhost:5432/notificationdb}
+    username: ${NOTIFICATION_DB_USERNAME:notification_user}
+    password: ${NOTIFICATION_DB_PASSWORD:notification_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update

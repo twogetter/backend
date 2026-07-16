@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    default: dev
   application:
     name: notification-service
   config:
