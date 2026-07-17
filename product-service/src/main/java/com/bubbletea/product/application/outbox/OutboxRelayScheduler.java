@@ -23,6 +23,9 @@ public class OutboxRelayScheduler {
     @Value("${product.outbox.stale-publishing-threshold-minutes:5}")
     private long stalePublishingThresholdMinutes;
 
+    @Value("${product.outbox.max-retry-count:5}")
+    private int maxRetryCount;
+
     @Scheduled(fixedDelayString = "${product.outbox.relay-fixed-delay-ms:3000}")
     public void relay() {
         recoverStalledPublishing();
@@ -49,8 +52,18 @@ public class OutboxRelayScheduler {
             outboxEventRepository.markPublished(event.getId());
             log.info("[outbox 발행 성공] outboxEventId={}, topic={}", event.getId(), event.getTopic());
         } catch (Exception e) {
-            log.error("[outbox 발행 실패] outboxEventId={}, topic={}", event.getId(), event.getTopic(),
-                e);
+            handleFailure(event, e);
+        }
+    }
+
+    private void handleFailure(OutboxEvent event, Exception e) {
+        if (event.getRetryCount() < maxRetryCount) {
+            log.warn("[outbox 발행 실패] 재시도 outboxEventId={}, topic={}, retryCount={}/{}",
+                event.getId(), event.getTopic(), event.getRetryCount(), maxRetryCount, e);
+            outboxEventRepository.markPendingForRetry(event.getId(), e.getMessage());
+        } else {
+            log.error("[outbox 발행 실패] 최대 재시도 횟수 초과 outboxEventId={}, topic={}, retryCount={}",
+                event.getId(), event.getTopic(), event.getRetryCount(), e);
             outboxEventRepository.markFailed(event.getId(), e.getMessage());
         }
     }

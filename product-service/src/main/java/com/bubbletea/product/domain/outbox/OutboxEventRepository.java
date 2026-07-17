@@ -13,5 +13,7 @@ public interface OutboxEventRepository {
 
     void markFailed(String id, String failReason);
 
+    void markPendingForRetry(String id, String failReason);
+
     int recoverStalledPublishing(LocalDateTime staleBefore);
 }

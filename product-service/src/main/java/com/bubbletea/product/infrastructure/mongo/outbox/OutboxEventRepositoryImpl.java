@@ -65,6 +65,14 @@ class OutboxEventRepositoryImpl implements OutboxEventRepository {
 
         mongoTemplate.updateFirst(Query.query(
             Criteria.where("id").is(id)), update, OutboxEvent.class);
+    @Override
+    public void markPendingForRetry(String id, String failReason) {
+        Update update = Update.update("status", OutboxEventStatus.PENDING)
+            .set("failReason", failReason)
+            .inc("retryCount", 1)
+            .unset("claimedAt");
+
+        applyGuardedByPublishing(id, update, "markPendingForRetry");
     }
 
     @Override
@@ -79,5 +87,17 @@ class OutboxEventRepositoryImpl implements OutboxEventRepository {
         return (int) mongoTemplate
             .updateMulti(query, update, OutboxEvent.class)
             .getModifiedCount();
+    }
+
+    private void applyGuardedByPublishing(String id, Update update, String operationName) {
+        Query query = Query.query(Criteria.where("id").is(id)
+            .and("status")
+            .is(OutboxEventStatus.PUBLISHING));
+
+        UpdateResult result = mongoTemplate.updateFirst(query, update, OutboxEvent.class);
+
+        if (result.getModifiedCount() == 0) {
+            log.warn("[outbox] {} 무시됨 outboxEventId={}", operationName, id);
+        }
     }
 }

@@ -35,6 +35,8 @@ public class OutboxEvent extends BaseTimeEntity {
 
     private OutboxEventStatus status;
 
+    private int retryCount;
+
     private LocalDateTime claimedAt;
 
     private LocalDateTime publishedAt;
@@ -55,6 +57,7 @@ public class OutboxEvent extends BaseTimeEntity {
         this.payload = payload;
         this.headers = headers;
         this.status = OutboxEventStatus.PENDING;
+        this.retryCount = 0;
     }
 
     public static OutboxEvent of(
