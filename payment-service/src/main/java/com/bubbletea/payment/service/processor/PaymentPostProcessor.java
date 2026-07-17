@@ -111,14 +111,18 @@ public class PaymentPostProcessor {
 
         PaymentStatus previousStatus = payment.getStatus();
 
-        payment.complete(paymentKey, PaymentStatus.CANCELLED);
-        paymentCancel.changeStatus(CancelStatus.SUCCESS);
-
         BigDecimal updatedRefundableAmount = payment.getRefundableAmount()
                 .subtract(BigDecimal.valueOf(cancelAmount));
         payment.updateRefundableAmount(updatedRefundableAmount);
 
-        PaymentHistory history = PaymentHistory.createSuccessHistory(payment, previousStatus, PaymentStatus.CANCELLED, HistoryType.CANCEL_REQUEST);
+        paymentCancel.changeStatus(CancelStatus.SUCCESS);
+        if(payment.getRefundableAmount().compareTo(BigDecimal.ZERO) == 0) {
+            payment.changeStatus(PaymentStatus.CANCELLED);
+        } else {
+            payment.changeStatus(PaymentStatus.PARTIALLY_REFUNDED);
+        }
+
+        PaymentHistory history = PaymentHistory.createSuccessHistory(payment, previousStatus, payment.getStatus(), HistoryType.CANCEL_REQUEST);
         paymentHistoryRepository.save(history);
 
         PaymentResultEvent event = new PaymentResultEvent(
@@ -143,7 +147,7 @@ public class PaymentPostProcessor {
         PaymentStatus previousStatus = payment.getStatus();
         paymentCancel.changeStatus(CancelStatus.FAILED);
 
-        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.FAILED, HistoryType.CANCEL_REQUEST, errorCode.toString(),
+        PaymentHistory history = PaymentHistory.createFailHistory(payment, previousStatus, PaymentStatus.PAID, HistoryType.CANCEL_REQUEST, errorCode.toString(),
                 errorMessage);
         paymentHistoryRepository.save(history);
 

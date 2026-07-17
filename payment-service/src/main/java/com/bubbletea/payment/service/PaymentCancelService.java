@@ -35,15 +35,20 @@ public class PaymentCancelService {
 
         PaymentCancel existingPaymentCancel = paymentCancelRepository.findByIdempotencyKey(dto.idempotencyKey()).orElse(null);
         PaymentCancel paymentCancel;
+
         if (existingPaymentCancel != null) {
+            if(!Objects.equals(existingPaymentCancel.getPayment().getId(), payment.getId())) {
+                throw new PaymentSystemException(PaymentErrorCode.INVALID_TOKEN);
+            }
             if (existingPaymentCancel.getStatus() == CancelStatus.SUCCESS) {
                 return null;
             }
             if (existingPaymentCancel.getStatus() == CancelStatus.UNKNOWN_HOLD) {
-                throw new PaymentSystemException(PaymentErrorCode.CANCEL_UNKNOWN_HOLD);
+                paymentCancel = existingPaymentCancel;
+                paymentCancel.changeStatus(CancelStatus.REQUEST);
+            } else {
+                throw new PaymentSystemException(PaymentErrorCode.INVALID_PAYMENT_STATUS);
             }
-            paymentCancel = existingPaymentCancel;
-            paymentCancel.changeStatus(CancelStatus.REQUEST);
         } else {
             paymentCancel = PaymentCancel.builder()
                     .payment(payment)
@@ -61,7 +66,7 @@ public class PaymentCancelService {
                 savedPaymentCancel.getPayment().getId(),
                 savedPaymentCancel.getPayment().getPaymentKey(),
                 savedPaymentCancel.getIdempotencyKey(),
-                savedPaymentCancel.getCancelAmount().longValue(),
+                savedPaymentCancel.getCancelAmount(),
                 savedPaymentCancel.getCancelReason()
         );
     }
@@ -76,7 +81,7 @@ public class PaymentCancelService {
             );
         }
 
-        if (status != PaymentStatus.PAID) {
+        if (status != PaymentStatus.PAID && status != PaymentStatus.UNKNOWN_HOLD && status != PaymentStatus.PARTIALLY_REFUNDED) {
             throw new PaymentSystemException(
                     PaymentErrorCode.INVALID_PAYMENT_STATUS,
                     "취소 불가능한 결제 상태입니다: " + status

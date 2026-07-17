@@ -62,14 +62,14 @@ public class BrandpayService {
 
             if (tokenResponse == null || tokenResponse.error() != null) {
                 log.error("Toss API Error: {}", tokenResponse);
-                throw new PaymentSystemException(PaymentErrorCode.TOSS_API_ERROR,
+                throw new PaymentSystemException(PaymentErrorCode.TOSS_PAYMENT_REJECTED,
                         tokenResponse == null ? "토스 API 오류" : tokenResponse.message());
             }
 
             String accessToken = tokenResponse.accessToken();
             String refreshToken = tokenResponse.refreshToken();
             if (accessToken == null || accessToken.isEmpty()) {
-                throw new PaymentSystemException(PaymentErrorCode.TOSS_API_ERROR, "Access Token을 받지 못했습니다");
+                throw new PaymentSystemException(PaymentErrorCode.TOSS_PAYMENT_REJECTED, "Access Token을 받지 못했습니다");
             }
 
             UserBrandpayAuth existingUserBrandpayAuth = userBrandpayAuthRepository
@@ -108,7 +108,7 @@ public class BrandpayService {
 
         if (methodResponse == null || methodResponse.error() != null) {
             log.error("Failed to load Brandpay payment methods: {}", methodResponse);
-            throw new PaymentSystemException(PaymentErrorCode.TOSS_API_ERROR,
+            throw new PaymentSystemException(PaymentErrorCode.TOSS_PAYMENT_REJECTED,
                     methodResponse == null ? "등록된 결제수단을 조회하지 못했습니다" : methodResponse.message());
         }
 

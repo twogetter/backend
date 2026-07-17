@@ -1,7 +1,5 @@
 package com.bubbletea.payment.facade;
 
-import com.bubbletea.payment.entity.Payment;
-import com.bubbletea.payment.entity.enums.PaymentStatus;
 import com.bubbletea.payment.global.exception.PaymentErrorCode;
 import com.bubbletea.payment.global.exception.PaymentSystemException;
 import com.bubbletea.payment.global.exception.PaymentTossApiException;
@@ -39,12 +37,12 @@ public class PaymentCancelFacade {
             PaymentCancelResponseDto response = tossBrandpayApiClient.cancelPayment(
                     data.paymentKey(),
                     data.idempotencyKey(),
-                    data.cancelAmount(),
+                    data.cancelAmount().longValueExact(),
                     data.cancelReason()
             );
 
 
-            paymentPostProcessor.completeCancelPayment(data.paymentCancelId(), response.paymentKey(), data.cancelAmount());
+            paymentPostProcessor.completeCancelPayment(data.paymentCancelId(), response.paymentKey(), data.cancelAmount().longValueExact());
 
 
         } catch (PaymentTossApiException e) {
@@ -52,11 +50,12 @@ public class PaymentCancelFacade {
             if (e.getErrorCode() == PaymentErrorCode.EXTERNAL_SERVER_ERROR) {
                 log.warn("토스 최종 승인 타임아웃 또는 서버 에러 발생 - 상태 유지(PENDING) 및 추후 확인 필요: {}", dto.paymentId());
                 paymentPostProcessor.holdCancelPayment(data.paymentCancelId(), e.getErrorCode(), e.getMessage());
-            } else {
-                log.error("토스 결제 승인 거절 (4xx): {}", e.getMessage());
-                paymentPostProcessor.failCancelPayment(data.paymentCancelId(), e.getErrorCode(), e.getMessage());
                 throw e;
             }
+            log.error("토스 결제 승인 거절 (4xx): {}", e.getMessage());
+            paymentPostProcessor.failCancelPayment(data.paymentCancelId(), e.getErrorCode(), e.getMessage());
+            throw e;
+
         }catch (PaymentSystemException e) {
             log.error("결제 취소 중 예상치 못한 오류 발생 - PaymentId: {}", dto.paymentId(), e);
             paymentPostProcessor.failCancelPayment(data.paymentCancelId(), e.getErrorCode(), e.getMessage());

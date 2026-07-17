@@ -60,7 +60,7 @@ public interface TossFeignClient {
             @RequestBody Map<String, Object> requestData
     );
 
-    @GetMapping("/v1/payments/{paymentKey}")
+    @GetMapping("/payments/{paymentKey}")
     TossStatusResponseDto getPaymentStatus(
             @RequestHeader("Authorization") String authorization, // Base64 인코딩된 인증 헤der
             @PathVariable("paymentKey") String paymentKey

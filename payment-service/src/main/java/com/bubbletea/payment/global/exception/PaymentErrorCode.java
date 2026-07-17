@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum PaymentErrorCode implements ErrorCode {
 
-    TOSS_API_ERROR(HttpStatus.BAD_REQUEST, "400", "카드 정보를 확인하세요."),
+    TOSS_PAYMENT_REJECTED(HttpStatus.BAD_REQUEST, "400", "카드 정보를 확인하세요."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "401", "유효하지 않은 토큰입니다"),
     DB_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "500", "결제 수단 저장 실패"),
     ALREADY_CONNECTED(HttpStatus.CONFLICT, "409", "이미 연동된 계정입니다"),
