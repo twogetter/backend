@@ -3,5 +3,5 @@ package com.bubbletea.product.domain.event;
 
 public interface ProductEventPublisher {
 
-    void publish(ProductEvent event);
+    void publish(String idempotencyKey, ProductEvent event);
 }

@@ -17,29 +17,37 @@ public class ProductScheduleNotificationService {
 
     private final ProductEventPublisher productEventPublisher;
 
-    public void notifyOpenSchedule(String productName, LocalDateTime openDate) {
-        productEventPublisher.publish(new ProductOpenScheduledEvent(productName, openDate));
+    public void notifyOpenSchedule(
+        String idempotencyKey, String productName, LocalDateTime openDate) {
+        productEventPublisher.publish(idempotencyKey,
+            new ProductOpenScheduledEvent(productName, openDate)
+        );
     }
 
-    public void notifyDeactivationSchedule(String productName, LocalDateTime deactivationDate) {
-        productEventPublisher.publish(
+    public void notifyDeactivationSchedule(
+        String idempotencyKey, String productName, LocalDateTime deactivationDate) {
+        productEventPublisher.publish(idempotencyKey,
             new ProductDeactivationScheduledEvent(productName, deactivationDate));
     }
 
-    public void notifyActivationSchedule(String productName, LocalDateTime activationDate) {
-        productEventPublisher.publish(
+    public void notifyActivationSchedule(
+        String idempotencyKey, String productName, LocalDateTime activationDate) {
+        productEventPublisher.publish(idempotencyKey,
             new ProductActivationScheduledEvent(productName, activationDate));
     }
 
-    public void notifyDeletionSchedule(String productName, LocalDateTime deletionDate) {
-        productEventPublisher.publish(new ProductDeletionScheduledEvent(productName, deletionDate));
+    public void notifyDeletionSchedule(
+        String idempotencyKey, String productName, LocalDateTime deletionDate) {
+        productEventPublisher.publish(idempotencyKey,
+            new ProductDeletionScheduledEvent(productName, deletionDate));
     }
 
     public void notifyPriceChangeSchedule(
+        String idempotencyKey,
         String productName, LocalDateTime priceChangeDate,
         long originalPrice, long changedPrice
     ) {
-        productEventPublisher.publish(
+        productEventPublisher.publish(idempotencyKey,
             new ProductPriceChangeScheduledEvent(
                 productName, priceChangeDate, originalPrice, changedPrice
             )
