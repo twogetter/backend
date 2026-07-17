@@ -3,9 +3,11 @@ package com.bubbletea.product.infrastructure.mongo.outbox;
 import com.bubbletea.product.domain.outbox.OutboxEvent;
 import com.bubbletea.product.domain.outbox.OutboxEventRepository;
 import com.bubbletea.product.domain.outbox.OutboxEventStatus;
+import com.mongodb.client.result.UpdateResult;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -14,6 +16,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
 class OutboxEventRepositoryImpl implements OutboxEventRepository {
@@ -31,8 +35,7 @@ class OutboxEventRepositoryImpl implements OutboxEventRepository {
 
     @Override
     public Optional<OutboxEvent> claimNextPending() {
-        Query query = Query.query(
-                Criteria.where("status").is(OutboxEventStatus.PENDING))
+        Query query = Query.query(Criteria.where("status").is(OutboxEventStatus.PENDING))
             .with(Sort.by(Sort.Direction.ASC, "createdAt"))
             .limit(1);
 
@@ -53,8 +56,7 @@ class OutboxEventRepositoryImpl implements OutboxEventRepository {
             .set("publishedAt", LocalDateTime.now())
             .set("expireAt", LocalDateTime.now().plusDays(PUBLISHED_RETENTION_DAYS));
 
-        mongoTemplate.updateFirst(Query.query(
-            Criteria.where("id").is(id)), update, OutboxEvent.class);
+        applyGuardedByPublishing(id, update, "markPublished");
     }
 
     @Override
@@ -63,8 +65,9 @@ class OutboxEventRepositoryImpl implements OutboxEventRepository {
             .set("failReason", failReason)
             .set("expireAt", LocalDateTime.now().plusDays(FAILED_RETENTION_DAYS));
 
-        mongoTemplate.updateFirst(Query.query(
-            Criteria.where("id").is(id)), update, OutboxEvent.class);
+        applyGuardedByPublishing(id, update, "markFailed");
+    }
+
     @Override
     public void markPendingForRetry(String id, String failReason) {
         Update update = Update.update("status", OutboxEventStatus.PENDING)
