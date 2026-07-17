@@ -39,7 +39,7 @@ public class PaymentController {
     public ApiResponse<String> requestCancel(
             @RequestHeader("X-User-Id") Long userId,
             @RequestBody PaymentCancelRequestDto dto) {
-        paymentCancelFacade.cancel(userId, dto);
+        paymentCancelFacade.cancel(userId, dto, false);
         return ApiResponse.success(dto.cancelAmount() + "원 결제 취소가 완료되었습니다.");
     }
 

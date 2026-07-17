@@ -26,30 +26,37 @@ public class PaymentCancelService {
     private final PaymentCancelRepository paymentCancelRepository;
 
     @Transactional
-    public PaymentCancelData readyCancel(Long userId, PaymentCancelRequestDto dto) {
+    public PaymentCancelData readyCancel(Long userId, PaymentCancelRequestDto dto, boolean isRecoveryFlow) {
         Payment payment = paymentRepository.findById(dto.paymentId())
                 .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
-        validatePayment(userId, payment);
-        validateCancelAmount(payment, dto.cancelAmount());
+        validateUserOwnership(userId, payment);
 
         PaymentCancel existingPaymentCancel = paymentCancelRepository.findByIdempotencyKey(dto.idempotencyKey()).orElse(null);
         PaymentCancel paymentCancel;
 
         if (existingPaymentCancel != null) {
-            if(!Objects.equals(existingPaymentCancel.getPayment().getId(), payment.getId())) {
+            if (!Objects.equals(existingPaymentCancel.getPayment().getId(), payment.getId())) {
                 throw new PaymentSystemException(PaymentErrorCode.INVALID_TOKEN);
             }
             if (existingPaymentCancel.getStatus() == CancelStatus.SUCCESS) {
                 return null;
             }
-            if (existingPaymentCancel.getStatus() == CancelStatus.UNKNOWN_HOLD) {
-                paymentCancel = existingPaymentCancel;
-                paymentCancel.changeStatus(CancelStatus.REQUEST);
-            } else {
-                throw new PaymentSystemException(PaymentErrorCode.INVALID_PAYMENT_STATUS);
+
+            if (existingPaymentCancel.getStatus() == CancelStatus.UNKNOWN_HOLD && !isRecoveryFlow) {
+                throw new PaymentSystemException(PaymentErrorCode.CANCEL_UNKNOWN_HOLD);
             }
+
+            validatePaymentStatus(payment);
+            validateCancelAmount(payment, dto.cancelAmount());
+
+            paymentCancel = existingPaymentCancel;
+            paymentCancel.changeStatus(CancelStatus.REQUEST);
+
         } else {
+            validatePaymentStatus(payment);
+            validateCancelAmount(payment, dto.cancelAmount());
+
             paymentCancel = PaymentCancel.builder()
                     .payment(payment)
                     .cancelAmount(dto.cancelAmount())
@@ -71,15 +78,17 @@ public class PaymentCancelService {
         );
     }
 
-    private void validatePayment(Long userId, Payment payment) {
-        PaymentStatus status = payment.getStatus();
-
+    private void validateUserOwnership(Long userId, Payment payment) {
         if(!Objects.equals(payment.getUserId(), userId)) {
             throw new PaymentSystemException(
                     PaymentErrorCode.UNAUTHORIZED_ACCESS,
                     "결제 요청자와 결제 정보의 사용자 ID가 일치하지 않습니다."
             );
         }
+    }
+
+    private void validatePaymentStatus(Payment payment) {
+        PaymentStatus status = payment.getStatus();
 
         if (status != PaymentStatus.PAID && status != PaymentStatus.UNKNOWN_HOLD && status != PaymentStatus.PARTIALLY_REFUNDED) {
             throw new PaymentSystemException(

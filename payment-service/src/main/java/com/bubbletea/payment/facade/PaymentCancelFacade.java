@@ -24,10 +24,10 @@ public class PaymentCancelFacade {
     private final PaymentPostProcessor paymentPostProcessor;
 
 
-    public void cancel(Long userId, PaymentCancelRequestDto dto) {
+    public void cancel(Long userId, PaymentCancelRequestDto dto, boolean isRecoveryFlow) {
         log.info("결제 취소 요청 시작 - PaymentId: {}, CancelAmount: {}", dto.paymentId(), dto.cancelAmount());
 
-        PaymentCancelData data = paymentCancelService.readyCancel(userId, dto);
+        PaymentCancelData data = paymentCancelService.readyCancel(userId, dto, isRecoveryFlow);
 
         if(data == null) {
             return;
@@ -56,9 +56,13 @@ public class PaymentCancelFacade {
             paymentPostProcessor.failCancelPayment(data.paymentCancelId(), e.getErrorCode(), e.getMessage());
             throw e;
 
-        }catch (PaymentSystemException e) {
+        } catch (PaymentSystemException e) {
             log.error("결제 취소 중 예상치 못한 오류 발생 - PaymentId: {}", dto.paymentId(), e);
             paymentPostProcessor.failCancelPayment(data.paymentCancelId(), e.getErrorCode(), e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("결제 취소 중 예상치 못한 오류 발생 - PaymentId: {}", dto.paymentId(), e);
+            paymentPostProcessor.holdCancelPayment(data.paymentCancelId(), PaymentErrorCode.SYSTEM_ERROR, e.getMessage());
             throw e;
         }
     }

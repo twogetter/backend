@@ -49,7 +49,7 @@ public class PaymentRecoveryScheduler {
                         .cancelAmount(cancel.getCancelAmount())
                         .cancelReason(cancel.getCancelReason())
                         .idempotencyKey(cancel.getIdempotencyKey())
-                        .build());
+                        .build(), true);
             } catch (Exception e) {
                 log.error("⚠️ 결제 취소 UNKNOWN_HOLD 상태 처리 실패 (다음 루프 재시도). 주문 ID: {}, 원인: {}",
                         cancel.getPayment().getOrderId(), e.getMessage(), e);
