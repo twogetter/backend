@@ -36,6 +36,9 @@ public class PaymentCancelService {
         PaymentCancel paymentCancel;
 
         if (existingPaymentCancel != null) {
+            if (existingPaymentCancel.getCancelAmount().compareTo(dto.cancelAmount()) != 0) {
+                throw new PaymentSystemException(PaymentErrorCode.INVALID_CANCEL_AMOUNT); // 취소 금액이 기존 요청과 다름
+            }
             if (!Objects.equals(existingPaymentCancel.getPayment().getId(), payment.getId())) {
                 throw new PaymentSystemException(PaymentErrorCode.INVALID_TOKEN);
             }
@@ -90,7 +93,7 @@ public class PaymentCancelService {
     private void validatePaymentStatus(Payment payment) {
         PaymentStatus status = payment.getStatus();
 
-        if (status != PaymentStatus.PAID && status != PaymentStatus.UNKNOWN_HOLD && status != PaymentStatus.PARTIALLY_REFUNDED) {
+        if (status != PaymentStatus.PAID && status != PaymentStatus.CANCEL_UNKNOWN_HOLD && status != PaymentStatus.PARTIALLY_REFUNDED) {
             throw new PaymentSystemException(
                     PaymentErrorCode.INVALID_PAYMENT_STATUS,
                     "취소 불가능한 결제 상태입니다: " + status
