@@ -38,4 +38,5 @@ try {
   print('✅ MongoDB 수동 인덱스 생성 성공');
 } catch (e) {
   print(`❌ 인덱스 생성 과정에서 오류 발생: ${e.message}`);
+  quit(1);
 }
