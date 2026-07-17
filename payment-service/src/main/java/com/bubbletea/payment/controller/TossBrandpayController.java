@@ -42,6 +42,17 @@ private final PaymentConfirmFacade paymentConfirmFacade;
         ));
     }
 
+//    @PostMapping("/payments/ready2")
+//    public ResponseEntity<Map<String, String>> readyPayment2(
+//            @RequestHeader("X-User-Id") Long userId,
+//            @RequestBody PaymentReadyRequestDto dto) {
+////        String tossMethodId = paymentConfirmFacade.ready(dto, userId);
+//
+//        return ResponseEntity.ok(Map.of(
+//                "status", "SUCCESS"
+//        ));
+//    }
+
     @PostMapping("/webhooks/toss-brandpay")
     public ResponseEntity<String> handleTossWebhook(
             @RequestBody TossWebhookRequestDto request,
