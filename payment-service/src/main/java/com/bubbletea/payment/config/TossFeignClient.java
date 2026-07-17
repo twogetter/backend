@@ -6,6 +6,7 @@ import com.bubbletea.payment.service.dto.PaymentCancelResponseDto;
 import com.bubbletea.payment.service.dto.TossAccessTokenResponseDto;
 import com.bubbletea.payment.service.dto.BillingRequestDto;
 import com.bubbletea.payment.service.dto.TossRegisteredPaymentMethodsResponseDto;
+import com.bubbletea.payment.service.dto.TossStatusResponseDto;
 import java.util.Map;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -58,5 +59,12 @@ public interface TossFeignClient {
             @PathVariable String paymentKey,
             @RequestBody Map<String, Object> requestData
     );
+
+    @GetMapping("/v1/payments/{paymentKey}")
+    TossStatusResponseDto getPaymentStatus(
+            @RequestHeader("Authorization") String authorization, // Base64 인코딩된 인증 헤der
+            @PathVariable("paymentKey") String paymentKey
+    );
+
 
 }

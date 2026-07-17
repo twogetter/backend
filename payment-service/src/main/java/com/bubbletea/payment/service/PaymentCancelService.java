@@ -55,9 +55,9 @@ public class PaymentCancelService {
         }
 
         PaymentCancel savedPaymentCancel = paymentCancelRepository.save(paymentCancel);
-        String paymentKey = savedPaymentCancel.getPayment().getPaymentKey();
 
         return new PaymentCancelData(
+                savedPaymentCancel.getId(),
                 savedPaymentCancel.getPayment().getId(),
                 savedPaymentCancel.getPayment().getPaymentKey(),
                 savedPaymentCancel.getIdempotencyKey(),

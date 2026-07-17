@@ -11,6 +11,7 @@ import com.bubbletea.payment.service.dto.TossAccessTokenResponseDto;
 import com.bubbletea.payment.service.dto.TossBillingChangeStatusRequestDto;
 import com.bubbletea.payment.service.dto.BillingRequestDto;
 import com.bubbletea.payment.service.dto.TossRegisteredPaymentMethodsResponseDto;
+import com.bubbletea.payment.service.dto.TossStatusResponseDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
@@ -202,37 +203,24 @@ public class TossBrandpayApiClient {
         throw new PaymentTossApiException(PaymentErrorCode.EXTERNAL_SERVER_ERROR);
     }
 
+    public TossStatusResponseDto getTossPaymentStatus(String paymentKey) {
+        String encodedToken = getBasicAuthHeader();
+        try {
+            return tossFeignClient.getPaymentStatus(encodedToken, paymentKey);
+        } catch (Exception e) {
+            log.error("토스페이먼츠 API 조회 실패 - paymentKey: {}", paymentKey, e);
+            throw e;
+        }
+    }
+
+
     private String getBasicAuthHeader() {
         String rawToken = apiSecretKey + ":";
         String encodedToken = Base64.getEncoder().encodeToString(rawToken.getBytes(StandardCharsets.UTF_8));
         return "Basic " + encodedToken;
     }
 
-//    public PaymentConfirmResponseDto confirmPayment(PaymentConfirmRequestDto dto, String idempotencyKey) {
-//        String url = BRANDPAY_API_BASE_URL + "/payments/confirm";
-//
-//        String rawToken = apiSecretKey + ":";
-//        String encodedToken = Base64.getEncoder().encodeToString(rawToken.getBytes(StandardCharsets.UTF_8));
-//
-//        try {
-//            return restClient.post()
-//                    .uri(url)
-//                    .headers(headers -> {
-//                        headers.set("Authorization", "Basic " + encodedToken);
-//                        headers.setContentType(MediaType.APPLICATION_JSON);
-//                        headers.set("Idempotency-Key", idempotencyKey);
-//                    })
-//                    .body(dto)
-//                    .retrieve()
-//                    .body(PaymentConfirmResponseDto.class);
-//        } catch (RestClientResponseException e) {
-//            String errorBody = e.getResponseBodyAsString();
-//            throw new PaymentTossApiException(PaymentErrorCode.TOSS_API_ERROR);
-//        } catch (Exception e) {
-//            //TODO: 잔액부족같은 만료 같은 에러 분기처리 필요
-//            throw new PaymentSystemException(PaymentErrorCode.UNAUTHORIZED_ACCESS);
-//        }
-//    }
+
 
 
 }
