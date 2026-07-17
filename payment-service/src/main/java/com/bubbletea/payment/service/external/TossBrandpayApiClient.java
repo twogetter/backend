@@ -8,7 +8,6 @@ import com.bubbletea.payment.service.dto.PaymentConfirmRequestDto;
 import com.bubbletea.payment.service.dto.PaymentConfirmResponseDto;
 import com.bubbletea.payment.service.dto.PaymentCancelResponseDto;
 import com.bubbletea.payment.service.dto.TossAccessTokenResponseDto;
-import com.bubbletea.payment.service.dto.TossBillingChangeStatusRequestDto;
 import com.bubbletea.payment.service.dto.BillingRequestDto;
 import com.bubbletea.payment.service.dto.TossRegisteredPaymentMethodsResponseDto;
 import com.bubbletea.payment.service.dto.TossStatusResponseDto;
@@ -94,7 +93,7 @@ public class TossBrandpayApiClient {
                 throw e;
             }
             log.error("Brandpay Confirm Client Error (4xx): {}", e.contentUTF8());
-            throw new PaymentTossApiException(PaymentErrorCode.TOSS_API_ERROR);
+            throw new PaymentTossApiException(PaymentErrorCode.TOSS_PAYMENT_REJECTED);
         } catch (Exception e) {
             throw new PaymentSystemException(PaymentErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -137,7 +136,7 @@ public class TossBrandpayApiClient {
 
             // 2. 재시도 불가 대상: 4xx 클라이언트 에러 (한도초과, 잔액부족, 카드만료 등)
             log.error("Toss Billing Client Error (4xx) - 상태 확정 실패 처리: {}", e.contentUTF8());
-            throw new PaymentTossApiException(PaymentErrorCode.TOSS_API_ERROR);
+            throw new PaymentTossApiException(PaymentErrorCode.TOSS_PAYMENT_REJECTED);
 
         } catch (Exception e) {
             log.error("Toss Billing System Error - 알 수 없는 내부 예외 발생", e);
@@ -184,7 +183,7 @@ public class TossBrandpayApiClient {
             }
 
             log.error("Toss Cancel Client Error (4xx): {}", e.contentUTF8());
-            throw new PaymentTossApiException(PaymentErrorCode.TOSS_API_ERROR);
+            throw new PaymentTossApiException(PaymentErrorCode.TOSS_PAYMENT_REJECTED);
         } catch (Exception e) {
             log.error("Toss Cancel System Error - 알 수 없는 내부 예외 발생", e);
             throw new PaymentSystemException(PaymentErrorCode.UNAUTHORIZED_ACCESS);
