@@ -4,6 +4,8 @@ import com.bubbletea.chat.application.dto.ChatMessageResponseDto;
 import com.bubbletea.chat.application.service.validator.ActiveParticipantValidator;
 import com.bubbletea.chat.application.service.validator.FanMessageValidator;
 import com.bubbletea.chat.domain.entity.ChatMessage;
+import com.bubbletea.chat.domain.entity.ChatRoom;
+import com.bubbletea.chat.domain.enums.ChatRoomStatus;
 import com.bubbletea.chat.domain.enums.ParticipantRole;
 import com.bubbletea.chat.domain.exception.ChatErrorCode;
 import com.bubbletea.chat.domain.repository.ChatMessageRepository;
@@ -33,8 +35,12 @@ public class ChatMessageService {
       ParticipantRole role,
       ChatMessageCreateRequestDto requestDto
   ) {
-    chatRoomRepository.findById(roomId)
+    ChatRoom room = chatRoomRepository.findById(roomId)
         .orElseThrow(() -> new AppException(ChatErrorCode.CHAT_ROOM_NOT_FOUND));
+    // 지워지지 않은 방인지?
+    if (room.getStatus() != ChatRoomStatus.ACTIVE) {
+      throw new AppException(ChatErrorCode.CHAT_ROOM_NOT_FOUND);
+    }
     // ACTIVE 상태인 참여자인지?
     activeParticipantValidator.validate(roomId, senderId, requestDto.content());
     // 팬이면 전송 5회 제한 확인
