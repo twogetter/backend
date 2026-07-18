@@ -20,7 +20,7 @@ public class FanMessageValidator implements ChatMessageValidator {
   @Override
   public void validate(Long roomId, Long senderId) {
     LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-    long messageCount = chatMessageRepository.countBySenderIdAndCreatedAtAfter(senderId,
+    long messageCount = chatMessageRepository.countBySenderIdAndCreatedAtGreaterThanEqual(senderId,
         startOfToday);
     if (messageCount >= 5) {
       throw new AppException(ChatErrorCode.EXCEEDED_DAILY_LIMIT);
