@@ -3,6 +3,7 @@ package com.bubbletea.payment.service;
 import com.bubbletea.payment.entity.Payment;
 import com.bubbletea.payment.entity.PaymentMethod;
 import com.bubbletea.payment.entity.UserBrandpayAuth;
+import com.bubbletea.payment.entity.enums.PaymentMethodType;
 import com.bubbletea.payment.entity.enums.PaymentStatus;
 import com.bubbletea.payment.global.exception.PaymentErrorCode;
 import com.bubbletea.payment.global.exception.PaymentSystemException;
@@ -30,13 +31,13 @@ public class BillingService {
         PaymentMethod paymentMethod = paymentMethodRepository.findById(event.methodId())
                 .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.PAYMENT_METHOD_NOT_FOUND));
 
+        if(paymentMethod.getType() != PaymentMethodType.BILLING) {
+            throw new PaymentSystemException(PaymentErrorCode.REGULAR_PAYMENT_METHOD_REQUIRED);
+        }
+
         if(!Objects.equals(paymentMethod.getUserBrandpayAuth().getUserId(), userId)) {
             throw new PaymentSystemException(PaymentErrorCode.PAYMENT_METHOD_NOT_FOUND);
         }
-
-//        if (paymentRepository.existsByOrderId(orderId)) {
-//            throw new AlreadyProcessedException("이미 존재하는 주문건입니다.");
-//        }
 
         UserBrandpayAuth auth = paymentMethod.getUserBrandpayAuth();
         String idempotencyKey = "payment-confirm-" + event.orderId() + "-" + UUID.randomUUID();
