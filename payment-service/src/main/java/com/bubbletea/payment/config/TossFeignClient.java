@@ -2,12 +2,15 @@ package com.bubbletea.payment.config;
 
 import com.bubbletea.payment.service.dto.PaymentConfirmRequestDto;
 import com.bubbletea.payment.service.dto.PaymentConfirmResponseDto;
+import com.bubbletea.payment.service.dto.PaymentCancelResponseDto;
 import com.bubbletea.payment.service.dto.TossAccessTokenResponseDto;
 import com.bubbletea.payment.service.dto.BillingRequestDto;
 import com.bubbletea.payment.service.dto.TossRegisteredPaymentMethodsResponseDto;
+import com.bubbletea.payment.service.dto.TossStatusResponseDto;
 import java.util.Map;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -48,5 +51,20 @@ public interface TossFeignClient {
 //            @RequestHeader(value = "TossPayments-Test-Code", required = false) String testCode,
             @RequestBody BillingRequestDto dto
     );
+
+    @PostMapping("/payments/{paymentKey}/cancel")
+    PaymentCancelResponseDto cancelPayment(
+            @RequestHeader("Authorization") String authorization,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @PathVariable String paymentKey,
+            @RequestBody Map<String, Object> requestData
+    );
+
+    @GetMapping("/payments/{paymentKey}")
+    TossStatusResponseDto getPaymentStatus(
+            @RequestHeader("Authorization") String authorization, // Base64 인코딩된 인증 헤der
+            @PathVariable("paymentKey") String paymentKey
+    );
+
 
 }

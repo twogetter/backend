@@ -1,5 +1,6 @@
 package com.bubbletea.payment.entity;
 
+import com.bubbletea.payment.entity.enums.HistoryType;
 import com.bubbletea.payment.entity.enums.PaymentStatus;
 import com.bubbletea.payment.global.common.BaseEntity;
 import com.bubbletea.payment.global.exception.PaymentErrorCode;
@@ -31,6 +32,9 @@ public class PaymentHistory extends BaseEntity {
     private Payment payment;
 
     @Enumerated(EnumType.STRING)
+    private HistoryType historyType;
+
+    @Enumerated(EnumType.STRING)
     private PaymentStatus previousStatus;
 
     @Enumerated(EnumType.STRING)
@@ -39,19 +43,21 @@ public class PaymentHistory extends BaseEntity {
     private String errorCode;
     private String errorMessage;
 
-    public static PaymentHistory createSuccessHistory(Payment payment, PaymentStatus previousStatus) {
-        PaymentHistory history = new PaymentHistory();
-        history.payment = payment;
-        history.previousStatus = previousStatus;
-        history.currentStatus = PaymentStatus.PAID;
-        return history;
-    }
-
-    public static PaymentHistory createFailHistory(Payment payment, PaymentStatus previousStatus, PaymentStatus status, String errorCode, String errorMessage) {
+    public static PaymentHistory createSuccessHistory(Payment payment, PaymentStatus previousStatus, PaymentStatus status, HistoryType type) {
         PaymentHistory history = new PaymentHistory();
         history.payment = payment;
         history.previousStatus = previousStatus;
         history.currentStatus = status;
+        history.historyType = type;
+        return history;
+    }
+
+    public static PaymentHistory createFailHistory(Payment payment, PaymentStatus previousStatus, PaymentStatus status, HistoryType type, String errorCode, String errorMessage) {
+        PaymentHistory history = new PaymentHistory();
+        history.payment = payment;
+        history.previousStatus = previousStatus;
+        history.currentStatus = status;
+        history.historyType = type;
         history.errorCode = errorCode;
         history.errorMessage = errorMessage;
         return history;

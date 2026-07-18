@@ -22,9 +22,13 @@ public class PaymentEventPublisher {
     private static final String SUCCESS_NOTIFICATION_TOPIC = "notification.payment.paymentComplete";
     private static final String FAILED_ORDER_TOPIC = "order.payment.paymentFailed";
     private static final String FAILED_NOTIFICATION_TOPIC = "notification.payment.paymentFail";
-
     private static final String HOLD_ORDER_TOPIC = "order.payment.paymentHold";
     private static final String HOLD_NOTIFICATION_TOPIC = "notification.payment.paymentHold";
+
+    private static final String CANCEL_SUCCESS_ORDER_TOPIC = "order.payment.paymentCancelSuccess";
+    private static final String CANCEL_SUCCESS_NOTIFICATION_TOPIC = "notification.payment.paymentCancelComplete";
+    private static final String CANCEL_FAILED_ORDER_TOPIC = "order.payment.paymentCancelFailed";
+    private static final String CANCEL_FAILED_NOTIFICATION_TOPIC = "notification.payment.paymentCancelFail";
     private static final String CANCEL_HOLD_ORDER_TOPIC = "order.payment.paymentCancelHold";
     private static final String CANCEL_HOLD_NOTIFICATION_TOPIC = "notification.payment.paymentCancelHold";
 
@@ -48,7 +52,17 @@ public class PaymentEventPublisher {
         publish(event, HOLD_NOTIFICATION_TOPIC, "paymentHold");
     }
 
-    public void publishPaymentCancelHold(PaymentResultEvent event) {
+    public void publishCancelPaymentSuccess(PaymentResultEvent event) {
+        publish(event, CANCEL_SUCCESS_ORDER_TOPIC, "paymentCancelComplete");
+        publish(event, CANCEL_SUCCESS_NOTIFICATION_TOPIC, "paymentCancelComplete");
+    }
+
+    public void publishCancelPaymentFailed(PaymentResultEvent event) {
+        publish(event, CANCEL_FAILED_ORDER_TOPIC, "paymentCancelFail");
+        publish(event, CANCEL_FAILED_NOTIFICATION_TOPIC, "paymentCancelFail");
+    }
+
+    public void publishCancelPaymentHold(PaymentResultEvent event) {
         publish(event, CANCEL_HOLD_ORDER_TOPIC, "paymentCancelHold");
         publish(event, CANCEL_HOLD_NOTIFICATION_TOPIC, "paymentCancelHold");
     }

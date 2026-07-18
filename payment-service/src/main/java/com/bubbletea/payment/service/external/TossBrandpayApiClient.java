@@ -6,10 +6,11 @@ import com.bubbletea.payment.global.exception.PaymentSystemException;
 import com.bubbletea.payment.global.exception.PaymentTossApiException;
 import com.bubbletea.payment.service.dto.PaymentConfirmRequestDto;
 import com.bubbletea.payment.service.dto.PaymentConfirmResponseDto;
+import com.bubbletea.payment.service.dto.PaymentCancelResponseDto;
 import com.bubbletea.payment.service.dto.TossAccessTokenResponseDto;
-import com.bubbletea.payment.service.dto.TossBillingChangeStatusRequestDto;
 import com.bubbletea.payment.service.dto.BillingRequestDto;
 import com.bubbletea.payment.service.dto.TossRegisteredPaymentMethodsResponseDto;
+import com.bubbletea.payment.service.dto.TossStatusResponseDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
@@ -92,7 +93,7 @@ public class TossBrandpayApiClient {
                 throw e;
             }
             log.error("Brandpay Confirm Client Error (4xx): {}", e.contentUTF8());
-            throw new PaymentTossApiException(PaymentErrorCode.TOSS_API_ERROR);
+            throw new PaymentTossApiException(PaymentErrorCode.TOSS_PAYMENT_REJECTED);
         } catch (Exception e) {
             throw new PaymentSystemException(PaymentErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -135,7 +136,7 @@ public class TossBrandpayApiClient {
 
             // 2. 재시도 불가 대상: 4xx 클라이언트 에러 (한도초과, 잔액부족, 카드만료 등)
             log.error("Toss Billing Client Error (4xx) - 상태 확정 실패 처리: {}", e.contentUTF8());
-            throw new PaymentTossApiException(PaymentErrorCode.TOSS_API_ERROR);
+            throw new PaymentTossApiException(PaymentErrorCode.TOSS_PAYMENT_REJECTED);
 
         } catch (Exception e) {
             log.error("Toss Billing System Error - 알 수 없는 내부 예외 발생", e);
@@ -155,37 +156,70 @@ public class TossBrandpayApiClient {
         throw new PaymentTossApiException(PaymentErrorCode.EXTERNAL_SERVER_ERROR);
     }
 
+    @Retry(name = "cancelRetry", fallbackMethod = "cancelPaymentFallback")
+    public PaymentCancelResponseDto cancelPayment(
+            String paymentKey,
+            String idempotencyKey,
+            Long cancelAmount,
+            String cancelReason
+    ) {
+        String encodedToken = getBasicAuthHeader();
+
+        log.info("Toss Payment Cancel Request - PaymentKey: {}, Idempotency: {}, CancelAmount: {}",
+    paymentKey, idempotencyKey, cancelAmount);
+
+        Map<String, Object> requestData = new HashMap<>();
+        requestData.put("cancelReason", cancelReason);
+        if (cancelAmount != null) {
+            requestData.put("cancelAmount", cancelAmount);
+        }
+
+        try {
+            return tossFeignClient.cancelPayment(encodedToken, idempotencyKey, paymentKey, requestData);
+        } catch (FeignException e) {
+            if (e.status() >= 500 || e.status() == 429 || e.status() == 408) {
+                log.warn("토스 결제 취소 API 일시적 오류 또는 타임아웃. 재시도를 트리거합니다. Status: {}", e.status());
+                throw e;
+            }
+
+            log.error("Toss Cancel Client Error (4xx): {}", e.contentUTF8());
+            throw new PaymentTossApiException(PaymentErrorCode.TOSS_PAYMENT_REJECTED);
+        } catch (Exception e) {
+            log.error("Toss Cancel System Error - 알 수 없는 내부 예외 발생", e);
+            throw new PaymentSystemException(PaymentErrorCode.UNAUTHORIZED_ACCESS);
+        }
+    }
+
+    public PaymentCancelResponseDto cancelPaymentFallback(
+            String paymentKey,
+            String idempotencyKey,
+            Long cancelAmount,
+            String cancelReason,
+            FeignException e
+    ) {
+        log.error("결제 취소 최종 재시도 실패 또는 타임아웃 발생 (Fallback 진입) - PaymentKey: {}, Reason: {}",
+                paymentKey, e.getMessage());
+        throw new PaymentTossApiException(PaymentErrorCode.EXTERNAL_SERVER_ERROR);
+    }
+
+    public TossStatusResponseDto getTossPaymentStatus(String paymentKey) {
+        String encodedToken = getBasicAuthHeader();
+        try {
+            return tossFeignClient.getPaymentStatus(encodedToken, paymentKey);
+        } catch (Exception e) {
+            log.error("토스페이먼츠 API 조회 실패 - paymentKey: {}", paymentKey, e);
+            throw e;
+        }
+    }
+
+
     private String getBasicAuthHeader() {
         String rawToken = apiSecretKey + ":";
         String encodedToken = Base64.getEncoder().encodeToString(rawToken.getBytes(StandardCharsets.UTF_8));
         return "Basic " + encodedToken;
     }
 
-//    public PaymentConfirmResponseDto confirmPayment(PaymentConfirmRequestDto dto, String idempotencyKey) {
-//        String url = BRANDPAY_API_BASE_URL + "/payments/confirm";
-//
-//        String rawToken = apiSecretKey + ":";
-//        String encodedToken = Base64.getEncoder().encodeToString(rawToken.getBytes(StandardCharsets.UTF_8));
-//
-//        try {
-//            return restClient.post()
-//                    .uri(url)
-//                    .headers(headers -> {
-//                        headers.set("Authorization", "Basic " + encodedToken);
-//                        headers.setContentType(MediaType.APPLICATION_JSON);
-//                        headers.set("Idempotency-Key", idempotencyKey);
-//                    })
-//                    .body(dto)
-//                    .retrieve()
-//                    .body(PaymentConfirmResponseDto.class);
-//        } catch (RestClientResponseException e) {
-//            String errorBody = e.getResponseBodyAsString();
-//            throw new PaymentTossApiException(PaymentErrorCode.TOSS_API_ERROR);
-//        } catch (Exception e) {
-//            //TODO: 잔액부족같은 만료 같은 에러 분기처리 필요
-//            throw new PaymentSystemException(PaymentErrorCode.UNAUTHORIZED_ACCESS);
-//        }
-//    }
+
 
 
 }

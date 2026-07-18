@@ -62,4 +62,18 @@ public class Payment extends BaseEntity {
     public void changeStatus(PaymentStatus status) {
         this.status = status;
     }
+
+    public void updateRefundableAmount(BigDecimal newAmount) {
+        this.refundableAmount = newAmount;
+    }
+
+//    public void cancelPartially(BigDecimal cancelAmount) {
+//        if (this.refundableAmount == null) {
+//            throw new IllegalArgumentException("환불 가능 금액 정보가 없습니다");
+//        }
+//        if (cancelAmount.compareTo(this.refundableAmount) > 0) {
+//            throw new IllegalArgumentException("취소 금액이 환불 가능 금액을 초과했습니다");
+//        }
+//        this.refundableAmount = this.refundableAmount.subtract(cancelAmount);
+//    }
 }

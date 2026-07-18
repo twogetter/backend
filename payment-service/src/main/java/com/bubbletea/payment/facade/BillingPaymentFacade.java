@@ -22,12 +22,10 @@ import org.springframework.stereotype.Component;
 public class BillingPaymentFacade {
 
     private final BillingService billingService;
-    private final TossBrandpayApiClient tossBrandpayApiClient; // Spring Cloud OpenFeign
+    private final TossBrandpayApiClient tossBrandpayApiClient;
     private final PaymentPostProcessor paymentPostProcessor;
 
-    /**
-     * 정기결제 전체 프로세스 관장 (외부 API 호출을 포함하므로 @Transactional은 붙이지 않음)
-     */
+
     public void executeBilling(Long userId, Long orderId, BillingEvent event) {
 
         BillingConfirmData data;
@@ -48,7 +46,6 @@ public class BillingPaymentFacade {
                 .build();
 
         try {
-            // OpenFeign을 통한 1단계 즉시 승인 요청
             PaymentConfirmResponseDto response = tossBrandpayApiClient.executeBilling(
                     paymentId, data.idempotencyKey(), dto
             );
