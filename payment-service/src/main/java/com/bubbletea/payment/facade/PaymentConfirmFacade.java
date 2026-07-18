@@ -10,7 +10,7 @@ import com.bubbletea.payment.service.dto.PaymentReadyRequestDto;
 import com.bubbletea.payment.service.dto.data.PaymentConfirmData;
 import com.bubbletea.payment.service.external.OrderApiClient;
 import com.bubbletea.payment.service.external.TossBrandpayApiClient;
-import com.bubbletea.payment.service.processor.PaymentPostProcessor;
+import com.bubbletea.payment.processor.PaymentPostProcessor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

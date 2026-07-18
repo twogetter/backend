@@ -1,16 +1,12 @@
 package com.bubbletea.payment.service;
 
 import com.bubbletea.payment.entity.Payment;
-import com.bubbletea.payment.entity.PaymentHistory;
 import com.bubbletea.payment.entity.PaymentMethod;
 import com.bubbletea.payment.entity.UserBrandpayAuth;
 import com.bubbletea.payment.entity.enums.PaymentStatus;
 import com.bubbletea.payment.global.exception.PaymentErrorCode;
 import com.bubbletea.payment.global.exception.PaymentSystemException;
-import com.bubbletea.payment.infrastructure.kafka.PaymentEventPublisher;
 import com.bubbletea.payment.infrastructure.kafka.dto.BillingEvent;
-import com.bubbletea.payment.infrastructure.kafka.dto.PaymentResultEvent;
-import com.bubbletea.payment.repository.PaymentHistoryRepository;
 import com.bubbletea.payment.repository.PaymentMethodRepository;
 import com.bubbletea.payment.repository.PaymentRepository;
 import com.bubbletea.payment.service.dto.data.BillingConfirmData;
@@ -27,8 +23,6 @@ public class BillingService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentMethodRepository paymentMethodRepository;
-    private final PaymentHistoryRepository paymentHistoryRepository;
-    private final PaymentEventPublisher paymentEventPublisher;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public BillingConfirmData createReadyPayment(Long userId, Long orderId, BillingEvent event) {
