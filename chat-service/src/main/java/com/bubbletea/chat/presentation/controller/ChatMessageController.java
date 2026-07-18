@@ -30,9 +30,6 @@ public class ChatMessageController {
       @PathVariable Long roomId,
       @Valid @RequestBody ChatMessageCreateRequestDto requestDto
   ) {
-    log.info("▶ 메시지 전송 요청 - roomId: {}, content: {}, type: {}", roomId, requestDto.content(),
-        requestDto.messageType());
-
     SecurityContext context = SecurityContextHolder.getContext();
     if (context == null || context.userId() == null || context.role() == null) {
       throw new AppException(ChatErrorCode.INVALID_ROLE);
