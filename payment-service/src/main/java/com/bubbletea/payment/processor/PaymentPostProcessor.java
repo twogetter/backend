@@ -58,16 +58,21 @@ public class PaymentPostProcessor {
 
         String payload = convertToJson(event);
 
-        PaymentOutbox outbox = PaymentOutbox.builder()
-                .aggregateType("payment")
-                .aggregateId(paymentId)
-                .topic(PaymentEventType.SUCCESS)
-                .messageKey(payment.getOrderId().toString())
-                .payload(payload)
-                .status(OutboxStatus.PENDING)
-                .build();
+        PaymentEventType eventTypeInfo = PaymentEventType.SUCCESS;
 
-        paymentOutboxRepository.save(outbox);
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(paymentId)
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
 
 
     }
@@ -95,16 +100,21 @@ public class PaymentPostProcessor {
 
         String payload = convertToJson(event);
 
-        PaymentOutbox outbox = PaymentOutbox.builder()
-                .aggregateType("payment")
-                .aggregateId(paymentId)
-                .topic(PaymentEventType.FAILED)
-                .messageKey(payment.getOrderId().toString())
-                .payload(payload)
-                .status(OutboxStatus.PENDING)
-                .build();
+        PaymentEventType eventTypeInfo = PaymentEventType.FAILED;
 
-        paymentOutboxRepository.save(outbox);
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(paymentId)
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
     }
 
     @Transactional
@@ -129,16 +139,21 @@ public class PaymentPostProcessor {
         );
         String payload = convertToJson(event);
 
-        PaymentOutbox outbox = PaymentOutbox.builder()
-                .aggregateType("payment")
-                .aggregateId(paymentId)
-                .topic(PaymentEventType.HOLD)
-                .messageKey(payment.getOrderId().toString())
-                .payload(payload)
-                .status(OutboxStatus.PENDING)
-                .build();
+        PaymentEventType eventTypeInfo = PaymentEventType.HOLD;
 
-        paymentOutboxRepository.save(outbox);
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(paymentId)
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
     }
 
     @Transactional
@@ -174,16 +189,21 @@ public class PaymentPostProcessor {
         );
         String payload = convertToJson(event);
 
-        PaymentOutbox outbox = PaymentOutbox.builder()
-                .aggregateType("payment")
-                .aggregateId(payment.getId())
-                .topic(PaymentEventType.CANCEL_SUCCESS)
-                .messageKey(payment.getOrderId().toString())
-                .payload(payload)
-                .status(OutboxStatus.PENDING)
-                .build();
+        PaymentEventType eventTypeInfo = PaymentEventType.CANCEL_SUCCESS;
 
-        paymentOutboxRepository.save(outbox);
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(payment.getId())
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
     }
 
     @Transactional
@@ -211,16 +231,21 @@ public class PaymentPostProcessor {
 //        paymentEventPublisher.publishCancelPaymentFailed(event);
         String payload = convertToJson(event);
 
-        PaymentOutbox outbox = PaymentOutbox.builder()
-                .aggregateType("payment")
-                .aggregateId(payment.getId())
-                .topic(PaymentEventType.CANCEL_FAILED)
-                .messageKey(payment.getOrderId().toString())
-                .payload(payload)
-                .status(OutboxStatus.PENDING)
-                .build();
+        PaymentEventType eventTypeInfo = PaymentEventType.CANCEL_FAILED;
 
-        paymentOutboxRepository.save(outbox);
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(payment.getId())
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
 
     }
 
@@ -250,16 +275,21 @@ public class PaymentPostProcessor {
 
         String payload = convertToJson(event);
 
-        PaymentOutbox outbox = PaymentOutbox.builder()
-                .aggregateType("payment")
-                .aggregateId(payment.getId())
-                .topic(PaymentEventType.CANCEL_HOLD)
-                .messageKey(payment.getOrderId().toString())
-                .payload(payload)
-                .status(OutboxStatus.PENDING)
-                .build();
+        PaymentEventType eventTypeInfo = PaymentEventType.CANCEL_HOLD;
 
-        paymentOutboxRepository.save(outbox);
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(payment.getId())
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
 
     }
 

@@ -35,8 +35,10 @@ public class PaymentOutbox extends BaseEntity {
     private Long aggregateId;
 
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private PaymentEventType topic;
+    private String topic;
+
+    @Column(nullable = false)
+    private String eventType;
 
 
     @Column(nullable = false)

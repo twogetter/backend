@@ -35,20 +35,18 @@ public class OutboxEventProcessor {
 
         PaymentResultEvent eventDto = objectMapper.readValue(outbox.getPayload(), PaymentResultEvent.class);
 
-        for (String targetTopic : outbox.getTopic().getTopics()) {
+        Message<PaymentResultEvent> message = MessageBuilder
+                .withPayload(eventDto)
+                .setHeader(KafkaHeaders.TOPIC, outbox.getTopic())
+                .setHeader(KafkaHeaders.KEY, outbox.getMessageKey())
+                .setHeader(HEADER_DOMAIN, outbox.getAggregateType())
+                .setHeader(HEADER_EVENT_TYPE, outbox.getEventType())
+                .setHeader(HEADER_EVENT_TIMESTAMP, currentTimestamp)
+                .build();
+        kafkaTemplate.send(message).get();
 
-            Message<PaymentResultEvent> message = MessageBuilder
-                    .withPayload(eventDto)
-                    .setHeader(KafkaHeaders.TOPIC, targetTopic)
-                    .setHeader(KafkaHeaders.KEY, outbox.getMessageKey())
-                    .setHeader(HEADER_DOMAIN, outbox.getAggregateType())
-                    .setHeader(HEADER_EVENT_TYPE, outbox.getTopic().getEventTypeHeader())
-                    .setHeader(HEADER_EVENT_TIMESTAMP, currentTimestamp)
-                    .build();
-            kafkaTemplate.send(message).get();
+        log.info("[Outbox Scheduler] 토픽 개별 발행 성공 -> Topic: {}", outbox.getTopic());
 
-            log.info("[Outbox Scheduler] 토픽 개별 발행 성공 -> Topic: {}", targetTopic);
-        }
 
         outbox.changeStatus(OutboxStatus.PROCESSED);
         outboxRepository.save(outbox);
