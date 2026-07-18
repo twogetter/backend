@@ -67,8 +67,8 @@ class ChatMessageServiceTest {
     org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "id", 100L);
 
     when(chatRoomRepository.findById(roomId)).thenReturn(Optional.of(mockRoom));
-    doNothing().when(activeParticipantValidator).validate(roomId, senderId);
-    doNothing().when(fanMessageValidator).validate(roomId, senderId);
+    doNothing().when(activeParticipantValidator).validate(roomId, senderId, ParticipantRole.FAN);
+    doNothing().when(fanMessageValidator).validate(roomId, senderId, ParticipantRole.FAN);
     when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(mockMessage);
 
     // when
@@ -80,8 +80,8 @@ class ChatMessageServiceTest {
     assertThat(response.content()).isEqualTo("ㅎㅇ");
     assertThat(response.senderType()).isEqualTo(ParticipantRole.FAN);
     verify(chatRoomRepository, times(1)).findById(roomId);
-    verify(activeParticipantValidator, times(1)).validate(roomId, senderId);
-    verify(fanMessageValidator, times(1)).validate(roomId, senderId);
+    verify(activeParticipantValidator, times(1)).validate(roomId, senderId, ParticipantRole.FAN);
+    verify(fanMessageValidator, times(1)).validate(roomId, senderId, ParticipantRole.FAN);
     verify(chatMessageRepository, times(1)).save(any(ChatMessage.class));
   }
 
@@ -105,7 +105,7 @@ class ChatMessageServiceTest {
     org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "id", 101L);
 
     when(chatRoomRepository.findById(roomId)).thenReturn(Optional.of(mockRoom));
-    doNothing().when(activeParticipantValidator).validate(roomId, senderId);
+    doNothing().when(activeParticipantValidator).validate(roomId, senderId, ParticipantRole.ARTIST);
     when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(mockMessage);
 
     // when
@@ -117,8 +117,8 @@ class ChatMessageServiceTest {
     assertThat(response.content()).isEqualTo("여러분");
     assertThat(response.senderType()).isEqualTo(ParticipantRole.ARTIST);
     verify(chatRoomRepository, times(1)).findById(roomId);
-    verify(activeParticipantValidator, times(1)).validate(roomId, senderId);
-    verify(fanMessageValidator, times(0)).validate(any(), any());
+    verify(activeParticipantValidator, times(1)).validate(roomId, senderId, ParticipantRole.ARTIST);
+    verify(fanMessageValidator, times(0)).validate(any(), any(), any());
     verify(chatMessageRepository, times(1)).save(any(ChatMessage.class));
   }
 
@@ -172,7 +172,7 @@ class ChatMessageServiceTest {
 
     when(chatRoomRepository.findById(roomId)).thenReturn(Optional.of(mockRoom));
     doThrow(new AppException(ChatErrorCode.PARTICIPANT_NOT_FOUND))
-        .when(activeParticipantValidator).validate(roomId, senderId);
+        .when(activeParticipantValidator).validate(roomId, senderId, ParticipantRole.FAN);
 
     // when & then
     assertThatThrownBy(
@@ -192,9 +192,9 @@ class ChatMessageServiceTest {
     ChatRoom mockRoom = ChatRoom.create(10L);
 
     when(chatRoomRepository.findById(roomId)).thenReturn(Optional.of(mockRoom));
-    doNothing().when(activeParticipantValidator).validate(roomId, senderId);
+    doNothing().when(activeParticipantValidator).validate(roomId, senderId, ParticipantRole.FAN);
     doThrow(new AppException(ChatErrorCode.EXCEEDED_DAILY_LIMIT))
-        .when(fanMessageValidator).validate(roomId, senderId);
+        .when(fanMessageValidator).validate(roomId, senderId, ParticipantRole.FAN);
 
     // when & then
     assertThatThrownBy(

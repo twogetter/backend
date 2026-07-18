@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import com.bubbletea.chat.domain.enums.ParticipantRole;
 import com.bubbletea.chat.domain.exception.ChatErrorCode;
 import com.bubbletea.chat.domain.repository.ChatMessageRepository;
 import com.bubbletea.common.exception.AppException;
@@ -33,12 +34,12 @@ class FanMessageValidatorTest {
     Long roomId = 1L;
     Long senderId = 2L;
 
-    when(chatMessageRepository.countBySenderIdAndCreatedAtGreaterThanEqual(eq(senderId),
+    when(chatMessageRepository.countByRoomIdAndSenderIdAndCreatedAtGreaterThanEqual(eq(roomId), eq(senderId),
         any(LocalDateTime.class)))
         .thenReturn(4L);
 
     // when & then
-    assertThatCode(() -> fanMessageValidator.validate(roomId, senderId))
+    assertThatCode(() -> fanMessageValidator.validate(roomId, senderId, ParticipantRole.FAN))
         .doesNotThrowAnyException();
   }
 
@@ -49,12 +50,12 @@ class FanMessageValidatorTest {
     Long roomId = 1L;
     Long senderId = 2L;
 
-    when(chatMessageRepository.countBySenderIdAndCreatedAtGreaterThanEqual(eq(senderId),
+    when(chatMessageRepository.countByRoomIdAndSenderIdAndCreatedAtGreaterThanEqual(eq(roomId), eq(senderId),
         any(LocalDateTime.class)))
         .thenReturn(5L);
 
     // when & then
-    assertThatThrownBy(() -> fanMessageValidator.validate(roomId, senderId))
+    assertThatThrownBy(() -> fanMessageValidator.validate(roomId, senderId, ParticipantRole.FAN))
         .isInstanceOf(AppException.class)
         .hasFieldOrPropertyWithValue("errorCode", ChatErrorCode.EXCEEDED_DAILY_LIMIT);
   }

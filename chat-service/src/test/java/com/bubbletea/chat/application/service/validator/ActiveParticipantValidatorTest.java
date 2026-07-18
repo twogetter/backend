@@ -44,7 +44,7 @@ class ActiveParticipantValidatorTest {
         .thenReturn(Optional.of(participant));
 
     // when & then
-    assertThatCode(() -> activeParticipantValidator.validate(roomId, senderId))
+    assertThatCode(() -> activeParticipantValidator.validate(roomId, senderId, ParticipantRole.FAN))
         .doesNotThrowAnyException();
   }
 
@@ -59,7 +59,7 @@ class ActiveParticipantValidatorTest {
         .thenReturn(Optional.empty());
 
     // when & then
-    assertThatThrownBy(() -> activeParticipantValidator.validate(roomId, senderId))
+    assertThatThrownBy(() -> activeParticipantValidator.validate(roomId, senderId, ParticipantRole.FAN))
         .isInstanceOf(AppException.class)
         .hasFieldOrPropertyWithValue("errorCode", ChatErrorCode.PARTICIPANT_NOT_FOUND);
   }
@@ -81,7 +81,7 @@ class ActiveParticipantValidatorTest {
         .thenReturn(Optional.of(participant));
 
     // when & then
-    assertThatThrownBy(() -> activeParticipantValidator.validate(roomId, senderId))
+    assertThatThrownBy(() -> activeParticipantValidator.validate(roomId, senderId, ParticipantRole.FAN))
         .isInstanceOf(AppException.class)
         .hasFieldOrPropertyWithValue("errorCode", ChatErrorCode.PARTICIPANT_NOT_FOUND);
   }
