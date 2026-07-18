@@ -37,6 +37,12 @@ public enum ChatErrorCode implements ErrorCode {
       HttpStatus.BAD_REQUEST,
       "CHAT-INVALID-ROLE",
       "유효하지 않은 참여자 역할입니다."
+  ),
+
+  EXCEEDED_DAILY_LIMIT(
+      HttpStatus.BAD_REQUEST,
+      "CHAT-EXCEEDED-DAILY_LIMIT",
+      "일일 전송 횟수(5회)를 초과했습니다."
   );
 
   private final HttpStatus httpStatus;

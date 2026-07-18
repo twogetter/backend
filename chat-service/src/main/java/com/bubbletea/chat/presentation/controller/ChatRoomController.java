@@ -1,10 +1,8 @@
 package com.bubbletea.chat.presentation.controller;
 
+import com.bubbletea.chat.application.dto.ChatRoomResponseDto;
 import com.bubbletea.chat.application.service.ChatRoomService;
 import com.bubbletea.chat.domain.enums.ParticipantRole;
-import com.bubbletea.chat.domain.exception.ChatErrorCode;
-import com.bubbletea.chat.presentation.controller.dto.ChatRoomResponseDto;
-import com.bubbletea.common.exception.AppException;
 import com.bubbletea.common.response.ApiResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -25,14 +23,7 @@ public class ChatRoomController {
       @RequestHeader("X-User-Id") Long userId,
       @RequestHeader("X-User-Role") String roleHeader
   ) {
-    ParticipantRole role;
-    if ("ARTIST".equalsIgnoreCase(roleHeader) || "BUSINESS".equalsIgnoreCase(roleHeader)) {
-      role = ParticipantRole.ARTIST;
-    } else if ("FAN".equalsIgnoreCase(roleHeader) || "USER".equalsIgnoreCase(roleHeader)) {
-      role = ParticipantRole.FAN;
-    } else {
-      throw new AppException(ChatErrorCode.INVALID_ROLE);
-    }
+    ParticipantRole role = ParticipantRole.from(roleHeader);
 
     List<ChatRoomResponseDto> response = chatRoomService.getAll(userId, role);
     return ApiResponse.success(response);
