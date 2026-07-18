@@ -15,7 +15,7 @@ public class ActiveParticipantValidator implements ChatMessageValidator {
   private final ChatParticipantRepository chatParticipantRepository;
 
   @Override
-  public void validate(Long roomId, Long senderId, String content) {
+  public void validate(Long roomId, Long senderId) {
     ChatParticipant participant = chatParticipantRepository.findByRoomIdAndUserIdForUpdate(roomId, senderId)
         .orElseThrow(() -> new AppException(ChatErrorCode.PARTICIPANT_NOT_FOUND));
 

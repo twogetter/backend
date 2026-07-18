@@ -18,7 +18,7 @@ public class FanMessageValidator implements ChatMessageValidator {
 
   // 버블 채팅 의미를 살리기 위해 일일 전송 횟수를 5회로 제한
   @Override
-  public void validate(Long roomId, Long senderId, String content) {
+  public void validate(Long roomId, Long senderId) {
     LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
     long messageCount = chatMessageRepository.countBySenderIdAndCreatedAtAfter(senderId,
         startOfToday);

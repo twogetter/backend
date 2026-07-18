@@ -42,10 +42,10 @@ public class ChatMessageService {
       throw new AppException(ChatErrorCode.CHAT_ROOM_NOT_FOUND);
     }
     // ACTIVE 상태인 참여자인지?
-    activeParticipantValidator.validate(roomId, senderId, requestDto.content());
+    activeParticipantValidator.validate(roomId, senderId);
     // 팬이면 전송 5회 제한 확인
     if (role == ParticipantRole.FAN) {
-      fanMessageValidator.validate(roomId, senderId, requestDto.content());
+      fanMessageValidator.validate(roomId, senderId);
     }
 
     ChatMessage message = ChatMessage.builder()
