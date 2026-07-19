@@ -4,11 +4,13 @@ import com.bubbletea.product.domain.reservation.ProductChangeReservation;
 import com.bubbletea.product.domain.reservation.ProductChangeReservationRepository;
 import com.bubbletea.product.domain.reservation.ReservationCommandType;
 import com.bubbletea.product.domain.reservation.ReservationStatus;
+import com.mongodb.client.result.UpdateResult;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -17,6 +19,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
 class ProductChangeReservationRepositoryImpl implements ProductChangeReservationRepository {
@@ -64,25 +68,21 @@ class ProductChangeReservationRepositoryImpl implements ProductChangeReservation
     }
 
     @Override
-    public void markExecuted(String reservationId) {
+    public void markExecuted(String reservationId, LocalDateTime claimedAt) {
         Update update = Update.update("status", ReservationStatus.EXECUTED)
             .set("executedAt", LocalDateTime.now())
             .set("expireAt", LocalDateTime.now().plusDays(EXECUTED_RETENTION_DAYS));
 
-        mongoTemplate.updateFirst(
-            Query.query(Criteria.where("id").is(reservationId)), update,
-            ProductChangeReservation.class);
+        applyGuardedByProcessing(reservationId, claimedAt, update, "markExecuted");
     }
 
     @Override
-    public void markFailed(String reservationId, String failReason) {
+    public boolean markFailed(String reservationId, String failReason, LocalDateTime claimedAt) {
         Update update = Update.update("status", ReservationStatus.FAILED)
             .set("failReason", failReason)
             .set("expireAt", LocalDateTime.now().plusDays(FAILED_RETENTION_DAYS));
 
-        mongoTemplate.updateFirst(
-            Query.query(Criteria.where("id").is(reservationId)), update,
-            ProductChangeReservation.class);
+        return applyGuardedByProcessing(reservationId, claimedAt, update, "markFailed");
     }
 
     @Override
@@ -96,5 +96,24 @@ class ProductChangeReservationRepositoryImpl implements ProductChangeReservation
         return (int) mongoTemplate
             .updateMulti(query, update, ProductChangeReservation.class)
             .getModifiedCount();
+    }
+
+    private boolean applyGuardedByProcessing(
+        String reservationId, LocalDateTime claimedAt, Update update, String operationName) {
+        Query query = Query.query(
+            Criteria.where("id").is(reservationId)
+                .and("status").is(ReservationStatus.PROCESSING)
+                .and("claimedAt").is(claimedAt));
+
+        UpdateResult result = mongoTemplate.updateFirst(query, update,
+            ProductChangeReservation.class);
+        boolean applied = result.getModifiedCount() == 1;
+
+        if (!applied) {
+            log.warn("[예약] {} 무시됨 reservationId={}, claimedAt={}",
+                operationName, reservationId, claimedAt);
+        }
+
+        return applied;
     }
 }

@@ -35,7 +35,7 @@ public class NotifyPriceChangeScheduleExecutor implements ReservationCommandExec
         long changedPrice = ((Number) reservation.getPayload().get(CHANGED_PRICE)).longValue();
 
         productScheduleNotificationService.notifyPriceChangeSchedule(
-            productName, priceChangeDate, originalPrice, changedPrice
+            reservation.getId(), productName, priceChangeDate, originalPrice, changedPrice
         );
 
         productChangeHistoryRepository.save(

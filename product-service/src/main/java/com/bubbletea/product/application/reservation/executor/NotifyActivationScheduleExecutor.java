@@ -31,7 +31,9 @@ public class NotifyActivationScheduleExecutor implements ReservationCommandExecu
         LocalDateTime activationDate = LocalDateTime
             .parse((String) reservation.getPayload().get(ACTIVATION_DATE));
 
-        productScheduleNotificationService.notifyActivationSchedule(productName, activationDate);
+        productScheduleNotificationService.notifyActivationSchedule(
+            reservation.getId(), productName, activationDate
+        );
 
         productChangeHistoryRepository.save(
             ProductChangeHistory.recordSuccess(reservation, reservation.getPayload()));

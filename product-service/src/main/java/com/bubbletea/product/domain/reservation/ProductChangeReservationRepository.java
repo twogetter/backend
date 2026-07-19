@@ -14,9 +14,9 @@ public interface ProductChangeReservationRepository {
     Optional<ProductChangeReservation> claimNextPending(
         LocalDateTime now, Collection<ReservationCommandType> commandTypes);
 
-    void markExecuted(String reservationId);
+    void markExecuted(String reservationId, LocalDateTime claimedAt);
 
-    void markFailed(String reservationId, String failReason);
+    boolean markFailed(String reservationId, String failReason, LocalDateTime claimedAt);
 
     int recoverStalledProcessing(LocalDateTime staleBefore);
 
