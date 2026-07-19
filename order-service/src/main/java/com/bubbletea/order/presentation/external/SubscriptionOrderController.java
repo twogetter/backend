@@ -4,6 +4,7 @@ import com.bubbletea.common.response.ApiResponse;
 import com.bubbletea.order.application.SubscriptionOrderFacade;
 import com.bubbletea.order.presentation.external.dto.OrderResponseDto;
 import com.bubbletea.order.presentation.external.dto.SubscriptionCreateRequestDto;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,7 @@ public class SubscriptionOrderController {
   @PostMapping
   public ResponseEntity<ApiResponse<OrderResponseDto>> createSubscription(
       @RequestHeader("X-User-Id") Long memberId,
-      @RequestBody SubscriptionCreateRequestDto request) {
+      @Valid @RequestBody SubscriptionCreateRequestDto request) {
 
     OrderResponseDto response = subscriptionOrderFacade.createSubscription(memberId, request);
     return ResponseEntity
