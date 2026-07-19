@@ -16,7 +16,7 @@ public interface ProductChangeReservationRepository {
 
     void markExecuted(String reservationId, LocalDateTime claimedAt);
 
-    void markFailed(String reservationId, String failReason, LocalDateTime claimedAt);
+    boolean markFailed(String reservationId, String failReason, LocalDateTime claimedAt);
 
     int recoverStalledProcessing(LocalDateTime staleBefore);
 

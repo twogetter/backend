@@ -98,10 +98,14 @@ public class ProductReservationExecutionService {
     }
 
     private void recordReservationFail(ProductChangeReservation reservation, String failReason) {
-        reservationRepository.markFailed(
+        boolean applied = reservationRepository.markFailed(
             reservation.getId(), failReason, reservation.getClaimedAt());
-        productChangeHistoryRepository.save(
-            ProductChangeHistory.recordFailure(reservation, failReason));
+        if (applied) {
+            productChangeHistoryRepository.save(
+                ProductChangeHistory.recordFailure(reservation, failReason));
+        } else {
+            log.warn("[예약 실패 저장] 무시됨 reservationId={}", reservation.getId());
+        }
     }
 
 }

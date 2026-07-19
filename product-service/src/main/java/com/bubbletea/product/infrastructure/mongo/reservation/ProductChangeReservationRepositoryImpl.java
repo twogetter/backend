@@ -77,12 +77,12 @@ class ProductChangeReservationRepositoryImpl implements ProductChangeReservation
     }
 
     @Override
-    public void markFailed(String reservationId, String failReason, LocalDateTime claimedAt) {
+    public boolean markFailed(String reservationId, String failReason, LocalDateTime claimedAt) {
         Update update = Update.update("status", ReservationStatus.FAILED)
             .set("failReason", failReason)
             .set("expireAt", LocalDateTime.now().plusDays(FAILED_RETENTION_DAYS));
 
-        applyGuardedByProcessing(reservationId, claimedAt, update, "markFailed");
+        return applyGuardedByProcessing(reservationId, claimedAt, update, "markFailed");
     }
 
     @Override
@@ -98,19 +98,22 @@ class ProductChangeReservationRepositoryImpl implements ProductChangeReservation
             .getModifiedCount();
     }
 
-    private void applyGuardedByProcessing(
+    private boolean applyGuardedByProcessing(
         String reservationId, LocalDateTime claimedAt, Update update, String operationName) {
         Query query = Query.query(
             Criteria.where("id").is(reservationId)
                 .and("status").is(ReservationStatus.PROCESSING)
                 .and("claimedAt").is(claimedAt));
 
-        UpdateResult result = mongoTemplate.updateFirst(
-            query, update, ProductChangeReservation.class);
+        UpdateResult result = mongoTemplate.updateFirst(query, update,
+            ProductChangeReservation.class);
+        boolean applied = result.getModifiedCount() == 1;
 
-        if (result.getModifiedCount() == 0) {
+        if (!applied) {
             log.warn("[예약] {} 무시됨 reservationId={}, claimedAt={}",
                 operationName, reservationId, claimedAt);
         }
+
+        return applied;
     }
 }
