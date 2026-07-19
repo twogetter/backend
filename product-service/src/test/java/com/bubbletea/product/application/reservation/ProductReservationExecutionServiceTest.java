@@ -65,8 +65,10 @@ class ProductReservationExecutionServiceTest {
 
         // then
         then(activateExecutor).should().execute(reservation);
-        then(reservationRepository).should().markExecuted(reservation.getId());
-        then(reservationRepository).should(never()).markFailed(anyString(), anyString());
+        then(reservationRepository).should()
+            .markExecuted(reservation.getId(), reservation.getClaimedAt());
+        then(reservationRepository)
+            .should(never()).markFailed(anyString(), anyString(), any());
         then(historyRepository).should(never()).save(any());
     }
 

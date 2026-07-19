@@ -17,7 +17,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Document(collection = "product_outbox_events")
 @CompoundIndexes({
-    @CompoundIndex(name = "idx_status_createdAt", def = "{'status': 1, 'createdAt': 1}")
+    @CompoundIndex(name = "idx_status_nextAttemptAt", def = "{'status': 1, 'nextAttemptAt': 1}")
 })
 public class OutboxEvent extends BaseTimeEntity {
 
@@ -38,6 +38,8 @@ public class OutboxEvent extends BaseTimeEntity {
     private int retryCount;
 
     private LocalDateTime claimedAt;
+
+    private LocalDateTime nextAttemptAt;
 
     private LocalDateTime publishedAt;
 

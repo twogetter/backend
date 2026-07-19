@@ -27,12 +27,21 @@ public class OutboxRelayScheduler {
     @Value("${product.outbox.max-retry-count:5}")
     private int maxRetryCount;
 
+    @Value("${product.outbox.retry-base-backoff-seconds:10}")
+    private long retryBaseBackoffSeconds;
+
+    @Value("${product.outbox.retry-max-backoff-seconds:300}")
+    private long retryMaxBackoffSeconds;
 
     @PostConstruct
     void validateConfiguration() {
         if (maxRetryCount < 0) {
             throw new IllegalStateException(
                 "max-retry-count는 0 이상이어야 합니다. 현재 값: " + maxRetryCount);
+        }
+        if (retryBaseBackoffSeconds < 0 || retryMaxBackoffSeconds < 0) {
+            throw new IllegalStateException(
+                "retry-max-backoff-seconds는 0 이상이어야 합니다.");
         }
     }
 
@@ -59,7 +68,7 @@ public class OutboxRelayScheduler {
     private void publishOne(OutboxEvent event) {
         try {
             outboxMessageSender.send(event.getTopic(), event.getPayload(), event.getHeaders());
-            outboxEventRepository.markPublished(event.getId());
+            outboxEventRepository.markPublished(event.getId(), event.getClaimedAt());
             log.info("[outbox 발행 성공] outboxEventId={}, topic={}", event.getId(), event.getTopic());
         } catch (Exception e) {
             handleFailure(event, e);
@@ -68,13 +77,22 @@ public class OutboxRelayScheduler {
 
     private void handleFailure(OutboxEvent event, Exception e) {
         if (event.getRetryCount() < maxRetryCount) {
+            LocalDateTime nextAttemptAt = LocalDateTime.now()
+                .plusSeconds(backoffSeconds(event.getRetryCount()));
             log.warn("[outbox 발행 실패] 재시도 outboxEventId={}, topic={}, retryCount={}/{}",
                 event.getId(), event.getTopic(), event.getRetryCount(), maxRetryCount, e);
-            outboxEventRepository.markPendingForRetry(event.getId(), e.getMessage());
+            outboxEventRepository.markPendingForRetry(
+                event.getId(), e.getMessage(), nextAttemptAt, event.getClaimedAt());
         } else {
             log.error("[outbox 발행 실패] 최대 재시도 횟수 초과 outboxEventId={}, topic={}, retryCount={}",
                 event.getId(), event.getTopic(), event.getRetryCount(), e);
-            outboxEventRepository.markFailed(event.getId(), e.getMessage());
+            outboxEventRepository.markFailed(event.getId(), e.getMessage(), event.getClaimedAt());
         }
+    }
+
+    private long backoffSeconds(int retryCount) {
+        int cappedExponent = Math.min(retryCount, 30);
+        long delay = retryBaseBackoffSeconds * (1L << cappedExponent);
+        return Math.min(delay, retryMaxBackoffSeconds);
     }
 }

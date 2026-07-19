@@ -9,11 +9,12 @@ public interface OutboxEventRepository {
 
     Optional<OutboxEvent> claimNextPending();
 
-    void markPublished(String id);
+    void markPublished(String id, LocalDateTime claimedAt);
 
-    void markFailed(String id, String failReason);
+    void markFailed(String id, String failReason, LocalDateTime claimedAt);
 
-    void markPendingForRetry(String id, String failReason);
+    void markPendingForRetry(
+        String id, String failReason, LocalDateTime nextAttemptAt, LocalDateTime claimedAt);
 
     int recoverStalledPublishing(LocalDateTime staleBefore);
 }

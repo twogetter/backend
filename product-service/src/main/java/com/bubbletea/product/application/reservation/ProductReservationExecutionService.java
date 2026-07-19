@@ -87,7 +87,7 @@ public class ProductReservationExecutionService {
 
         try {
             executor.execute(reservation);
-            reservationRepository.markExecuted(reservation.getId());
+            reservationRepository.markExecuted(reservation.getId(), reservation.getClaimedAt());
 
         } catch (Exception e) {
             log.error("[예약 실행 실패] reservationId={} ", reservation.getId(), e);
@@ -98,7 +98,8 @@ public class ProductReservationExecutionService {
     }
 
     private void recordReservationFail(ProductChangeReservation reservation, String failReason) {
-        reservationRepository.markFailed(reservation.getId(), failReason);
+        reservationRepository.markFailed(
+            reservation.getId(), failReason, reservation.getClaimedAt());
         productChangeHistoryRepository.save(
             ProductChangeHistory.recordFailure(reservation, failReason));
     }

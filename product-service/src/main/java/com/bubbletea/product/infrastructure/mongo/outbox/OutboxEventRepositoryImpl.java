@@ -51,31 +51,33 @@ class OutboxEventRepositoryImpl implements OutboxEventRepository {
     }
 
     @Override
-    public void markPublished(String id) {
+    public void markPublished(String id, LocalDateTime claimedAt) {
         Update update = Update.update("status", OutboxEventStatus.PUBLISHED)
             .set("publishedAt", LocalDateTime.now())
             .set("expireAt", LocalDateTime.now().plusDays(PUBLISHED_RETENTION_DAYS));
 
-        applyGuardedByPublishing(id, update, "markPublished");
+        applyGuardedByPublishing(id, claimedAt, update, "markPublished");
     }
 
     @Override
-    public void markFailed(String id, String failReason) {
+    public void markFailed(String id, String failReason, LocalDateTime claimedAt) {
         Update update = Update.update("status", OutboxEventStatus.FAILED)
             .set("failReason", failReason)
             .set("expireAt", LocalDateTime.now().plusDays(FAILED_RETENTION_DAYS));
 
-        applyGuardedByPublishing(id, update, "markFailed");
+        applyGuardedByPublishing(id, claimedAt, update, "markFailed");
     }
 
     @Override
-    public void markPendingForRetry(String id, String failReason) {
+    public void markPendingForRetry(
+        String id, String failReason, LocalDateTime nextAttemptAt, LocalDateTime claimedAt) {
         Update update = Update.update("status", OutboxEventStatus.PENDING)
             .set("failReason", failReason)
+            .set("nextAttemptAt", nextAttemptAt)
             .inc("retryCount", 1)
             .unset("claimedAt");
 
-        applyGuardedByPublishing(id, update, "markPendingForRetry");
+        applyGuardedByPublishing(id, claimedAt, update, "markPendingForRetry");
     }
 
     @Override
@@ -92,15 +94,18 @@ class OutboxEventRepositoryImpl implements OutboxEventRepository {
             .getModifiedCount();
     }
 
-    private void applyGuardedByPublishing(String id, Update update, String operationName) {
-        Query query = Query.query(Criteria.where("id").is(id)
-            .and("status")
-            .is(OutboxEventStatus.PUBLISHING));
+    private void applyGuardedByPublishing(
+        String id, LocalDateTime claimedAt, Update update, String operationName) {
+        Query query = Query.query(
+            Criteria.where("id").is(id)
+                .and("status").is(OutboxEventStatus.PUBLISHING)
+                .and("claimedAt").is(claimedAt));
 
         UpdateResult result = mongoTemplate.updateFirst(query, update, OutboxEvent.class);
 
         if (result.getModifiedCount() == 0) {
-            log.warn("[outbox] {} 무시됨 outboxEventId={}", operationName, id);
+            log.warn("[outbox] {} 무시됨 outboxEventId={}, claimedAt={}",
+                operationName, id, claimedAt);
         }
     }
 }

@@ -23,8 +23,8 @@ try {
 
   db.product_outbox_events.createIndex({idempotencyKey: 1},
       {unique: true, name: "idx_idempotencyKey_unique"});
-  db.product_outbox_events.createIndex({status: 1, createdAt: 1},
-      {name: "idx_status_createdAt"});
+  db.product_outbox_events.createIndex({status: 1, nextAttemptAt: 1},
+      {name: "idx_status_nextAttemptAt"});
 
   db.product_change_reservations.createIndex(
       {productId: 1, commandType: 1},

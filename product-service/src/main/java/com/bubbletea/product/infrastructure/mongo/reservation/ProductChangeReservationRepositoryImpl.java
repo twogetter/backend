@@ -68,21 +68,21 @@ class ProductChangeReservationRepositoryImpl implements ProductChangeReservation
     }
 
     @Override
-    public void markExecuted(String reservationId) {
+    public void markExecuted(String reservationId, LocalDateTime claimedAt) {
         Update update = Update.update("status", ReservationStatus.EXECUTED)
             .set("executedAt", LocalDateTime.now())
             .set("expireAt", LocalDateTime.now().plusDays(EXECUTED_RETENTION_DAYS));
 
-        applyGuardedByProcessing(reservationId, update, "markExecuted");
+        applyGuardedByProcessing(reservationId, claimedAt, update, "markExecuted");
     }
 
     @Override
-    public void markFailed(String reservationId, String failReason) {
+    public void markFailed(String reservationId, String failReason, LocalDateTime claimedAt) {
         Update update = Update.update("status", ReservationStatus.FAILED)
             .set("failReason", failReason)
             .set("expireAt", LocalDateTime.now().plusDays(FAILED_RETENTION_DAYS));
 
-        applyGuardedByProcessing(reservationId, update, "markFailed");
+        applyGuardedByProcessing(reservationId, claimedAt, update, "markFailed");
     }
 
     @Override
@@ -99,17 +99,18 @@ class ProductChangeReservationRepositoryImpl implements ProductChangeReservation
     }
 
     private void applyGuardedByProcessing(
-        String reservationId, Update update, String operationName) {
-        Query query = Query.query(Criteria.where("id").is(reservationId)
-            .and("status")
-            .is(ReservationStatus.PROCESSING));
+        String reservationId, LocalDateTime claimedAt, Update update, String operationName) {
+        Query query = Query.query(
+            Criteria.where("id").is(reservationId)
+                .and("status").is(ReservationStatus.PROCESSING)
+                .and("claimedAt").is(claimedAt));
 
         UpdateResult result = mongoTemplate.updateFirst(
-            query, update, ProductChangeReservation.class
-        );
+            query, update, ProductChangeReservation.class);
 
         if (result.getModifiedCount() == 0) {
-            log.warn("[예약] {} 무시됨 reservationId={}", operationName, reservationId);
+            log.warn("[예약] {} 무시됨 reservationId={}, claimedAt={}",
+                operationName, reservationId, claimedAt);
         }
     }
 }
