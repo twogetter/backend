@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Slf4j
 @Component
@@ -19,24 +20,32 @@ public class PaymentOutboxScheduler {
     private final PaymentOutboxRepository outboxRepository;
     private final OutboxEventProcessor outboxEventProcessor;
 
+    private final TransactionTemplate transactionTemplate;
+
     @Scheduled(fixedDelay = 500)
     public void processOutboxEvents() {
-        List<PaymentOutbox> pendingEvents = outboxRepository.findTop50ByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING);
 
-        if (pendingEvents.isEmpty()) {
+        List<PaymentOutbox> processingEvents = transactionTemplate.execute(status -> {
+            int claimedCount = outboxRepository.claimPendingEvents();
+            if (claimedCount == 0) {
+                return List.of();
+            }
+            return outboxRepository.findTop50ByStatusOrderByCreatedAtAsc(OutboxStatus.PROCESSING);
+        });
+
+        if (processingEvents == null || processingEvents.isEmpty()) {
             return;
         }
 
-        log.info("[Outbox Scheduler] 미발행 이벤트 {}건 발견. 발행을 시작합니다.", pendingEvents.size());
+        log.info("[Outbox Scheduler] 미발행 이벤트 {}건 발견. 발행을 시작합니다.", processingEvents.size());
 
-        for (PaymentOutbox outbox : pendingEvents) {
+        for (PaymentOutbox outbox : processingEvents) {
             try {
-                // 2. 각 이벤트를 개별 트랜잭션으로 안전하게 카프카로 발행하고 상태를 변경합니다.
                 outboxEventProcessor.sendToKafkaAndUpdateStatus(outbox);
             } catch (Exception e) {
-                // 카프카가 다운되는 등 에러 발생 시, 루프를 중단하고 다음 스케줄러 주기 때 다시 시도합니다.
                 log.error("[Outbox Scheduler] 카프카 발행 중 에러 발생 (아웃박스 ID: {}). 다음 주기에 재시도합니다. 원인: {}",
                         outbox.getId(), e.getMessage());
+                outboxRepository.rollbackAllProcessingToPending();
                 break;
             }
         }

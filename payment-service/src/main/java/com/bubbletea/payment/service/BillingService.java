@@ -12,6 +12,7 @@ import com.bubbletea.payment.repository.PaymentMethodRepository;
 import com.bubbletea.payment.repository.PaymentRepository;
 import com.bubbletea.payment.service.dto.data.BillingConfirmData;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,21 @@ public class BillingService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public BillingConfirmData createReadyPayment(Long userId, Long orderId, BillingEvent event) {
+
+        Optional<Payment> existingPayment = paymentRepository.findByOrderId(orderId);
+
+        if (existingPayment.isPresent()) {
+            Payment payment = existingPayment.get();
+            PaymentMethod method = payment.getPaymentMethod();
+            UserBrandpayAuth auth = method.getUserBrandpayAuth();
+            
+            return BillingConfirmData.builder()
+                    .paymentId(payment.getId())
+                    .customerKey(auth.getCustomerKey())
+                    .methodKey(method.getTossMethodKey())
+                    .idempotencyKey(payment.getIdempotencyKey())
+                    .build();
+        }
 
         PaymentMethod paymentMethod = paymentMethodRepository.findById(event.methodId())
                 .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.PAYMENT_METHOD_NOT_FOUND));
