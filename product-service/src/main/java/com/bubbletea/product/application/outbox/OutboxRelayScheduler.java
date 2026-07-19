@@ -3,6 +3,7 @@ package com.bubbletea.product.application.outbox;
 import com.bubbletea.product.domain.outbox.OutboxEvent;
 import com.bubbletea.product.domain.outbox.OutboxEventRepository;
 import com.bubbletea.product.domain.outbox.OutboxMessageSender;
+import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,15 @@ public class OutboxRelayScheduler {
 
     @Value("${product.outbox.max-retry-count:5}")
     private int maxRetryCount;
+
+
+    @PostConstruct
+    void validateConfiguration() {
+        if (maxRetryCount < 0) {
+            throw new IllegalStateException(
+                "max-retry-count는 0 이상이어야 합니다. 현재 값: " + maxRetryCount);
+        }
+    }
 
     @Scheduled(fixedDelayString = "${product.outbox.relay-fixed-delay-ms:3000}")
     public void relay() {
