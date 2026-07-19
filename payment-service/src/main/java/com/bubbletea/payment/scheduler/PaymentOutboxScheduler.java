@@ -4,6 +4,7 @@ import com.bubbletea.payment.entity.PaymentOutbox;
 import com.bubbletea.payment.entity.enums.OutboxStatus;
 import com.bubbletea.payment.processor.OutboxEventProcessor;
 import com.bubbletea.payment.repository.PaymentOutboxRepository;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,15 +23,17 @@ public class PaymentOutboxScheduler {
 
     private final TransactionTemplate transactionTemplate;
 
+    private final String processorId = UUID.randomUUID().toString();
+
     @Scheduled(fixedDelay = 500)
     public void processOutboxEvents() {
 
         List<PaymentOutbox> processingEvents = transactionTemplate.execute(status -> {
-            int claimedCount = outboxRepository.claimPendingEvents();
+            int claimedCount = outboxRepository.claimPendingEvents(processorId);
             if (claimedCount == 0) {
                 return List.of();
             }
-            return outboxRepository.findTop50ByStatusOrderByCreatedAtAsc(OutboxStatus.PROCESSING);
+            return outboxRepository.findByStatusAndProcessorId(OutboxStatus.PROCESSING, processorId);
         });
 
         if (processingEvents == null || processingEvents.isEmpty()) {
@@ -45,7 +48,7 @@ public class PaymentOutboxScheduler {
             } catch (Exception e) {
                 log.error("[Outbox Scheduler] 카프카 발행 중 에러 발생 (아웃박스 ID: {}). 다음 주기에 재시도합니다. 원인: {}",
                         outbox.getId(), e.getMessage());
-                outboxRepository.rollbackAllProcessingToPending();
+                outboxRepository.rollbackMyProcessingToPending(processorId);
                 break;
             }
         }

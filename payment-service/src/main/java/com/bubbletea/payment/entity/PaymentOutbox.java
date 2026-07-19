@@ -48,6 +48,8 @@ public class PaymentOutbox extends BaseEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String payload;
 
+    private String processorId;
+
     // 처리 상태 (PENDING, PROCESSED, FAILED)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

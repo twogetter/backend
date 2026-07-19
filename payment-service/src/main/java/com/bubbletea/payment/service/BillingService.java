@@ -32,10 +32,16 @@ public class BillingService {
         Optional<Payment> existingPayment = paymentRepository.findByOrderId(orderId);
 
         if (existingPayment.isPresent()) {
+            if(existingPayment.get().getStatus() != PaymentStatus.READY) {
+                throw new PaymentSystemException(PaymentErrorCode.PAYMENT_NOT_READY);
+            }
+            if(!Objects.equals(existingPayment.get().getUserId(), userId)) {
+                throw new PaymentSystemException(PaymentErrorCode.PAYMENT_NOT_FOUND);
+            }
             Payment payment = existingPayment.get();
             PaymentMethod method = payment.getPaymentMethod();
             UserBrandpayAuth auth = method.getUserBrandpayAuth();
-            
+
             return BillingConfirmData.builder()
                     .paymentId(payment.getId())
                     .customerKey(auth.getCustomerKey())
