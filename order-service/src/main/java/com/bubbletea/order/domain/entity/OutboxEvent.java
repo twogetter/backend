@@ -47,6 +47,9 @@ public class OutboxEvent {
   @Column(name = "message_key")
   private String messageKey;
 
+  @Column(name = "headers", columnDefinition = "TEXT")
+  private String headers;
+
   @Column(name = "payload", columnDefinition = "TEXT", nullable = false)
   private String payload;
 
@@ -63,12 +66,13 @@ public class OutboxEvent {
 
   @Builder
   public OutboxEvent(String aggregateType, String aggregateId, String eventType,
-      String topic, String messageKey, String payload) {
+      String topic, String messageKey, String headers, String payload) {
     this.aggregateType = aggregateType;
     this.aggregateId = aggregateId;
     this.eventType = eventType;
     this.topic = topic;
     this.messageKey = messageKey;
+    this.headers = headers;
     this.payload = payload;
     this.status = OutboxStatus.PENDING;
   }

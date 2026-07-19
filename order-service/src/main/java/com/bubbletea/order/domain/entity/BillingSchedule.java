@@ -74,6 +74,12 @@ public class BillingSchedule {
     this.nextBillingDate = LocalDate.now().plusMonths(1);
   }
 
+  /** 정기결제 성공 시 다음 결제일을 한 달 뒤로 이월한다(결제 주기 유지). */
+  public void renew() {
+    LocalDate base = (nextBillingDate != null) ? nextBillingDate : LocalDate.now();
+    this.nextBillingDate = base.plusMonths(1);
+  }
+
   public void softDelete() {
     this.status = SubscriptionStatus.CANCELED;
     this.deletedAt = LocalDateTime.now();

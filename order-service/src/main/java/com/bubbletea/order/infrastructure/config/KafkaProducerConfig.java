@@ -28,6 +28,8 @@ public class KafkaProducerConfig {
     configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
     // Value(페이로드)는 JSON 타입으로 직렬화
     configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
+    // 타입 헤더(__TypeId__) 미포함 — 소비 측이 자신의 타입으로 역직렬화하도록(payment 관례와 정렬, 서비스 간 결합 제거)
+    configProps.put(JacksonJsonSerializer.ADD_TYPE_INFO_HEADERS, false);
 
     return new DefaultKafkaProducerFactory<>(configProps);
   }
