@@ -41,6 +41,14 @@ public class PaymentResultService {
     SubscriptionOrder order = subscriptionOrderRepository.findById(ctx.orderId())
         .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
 
+    // 멱등 가드: PENDING이 아니면 이미 처리된 주문이므로 중복 처리(PaymentAttempt 중복,
+    // 아웃박스 중복 발행 → 채팅방 중복 생성, nextBillingDate 재연장)를 막고 현재 상태를 그대로 반환한다.
+    if (order.getStatus() != OrderStatus.PENDING) {
+      log.info("[Subscription] 이미 처리된 주문 — 중복 처리 스킵. orderId={}, status={}",
+          ctx.orderId(), order.getStatus());
+      return order.getStatus();
+    }
+
     return success ? activate(order, ctx) : rollback(order, ctx, failReason);
   }
 
