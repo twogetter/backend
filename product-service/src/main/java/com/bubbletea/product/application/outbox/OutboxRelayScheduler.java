@@ -35,6 +35,10 @@ public class OutboxRelayScheduler {
 
     @PostConstruct
     void validateConfiguration() {
+        if(stalePublishingThresholdMinutes < 0) {
+            throw new IllegalStateException(
+                "stale-publishing-threshold-minutes는 0 이상이어야 합니다.");
+        }
         if (maxRetryCount < 0) {
             throw new IllegalStateException(
                 "max-retry-count는 0 이상이어야 합니다. 현재 값: " + maxRetryCount);
