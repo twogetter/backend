@@ -1,8 +1,8 @@
-package com.bubbletea.order.prresentation.internal;
+package com.bubbletea.order.presentation.internal;
 
-import com.bubbletea.order.infrastructure.kafka.OrderEventProducer;
-import com.bubbletea.order.infrastructure.kafka.dto.SubscriptionRenewalEvent;
-import com.bubbletea.order.prresentation.internal.dto.OrderAmountResponseDto;
+import com.bubbletea.order.domain.event.SubscriptionRenewalEvent;
+import com.bubbletea.order.infrastructure.kafka.producer.OrderEventPublisher;
+import com.bubbletea.order.presentation.internal.dto.OrderAmountResponseDto;
 import java.math.BigDecimal;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ public class OrderInternalController {
 
   //-------- Kafka Mocking Testing --------------
 
-  private final OrderEventProducer orderEventProducer;
+  private final OrderEventPublisher orderEventProducer;
 
   @PostMapping("/mock-renewal-event")
   public ResponseEntity<Map<String, String>> triggerMockRenewalEvent() {

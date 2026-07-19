@@ -1,4 +1,4 @@
-package com.bubbletea.order.infrastructure.kafka.dto;
+package com.bubbletea.order.domain.event;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

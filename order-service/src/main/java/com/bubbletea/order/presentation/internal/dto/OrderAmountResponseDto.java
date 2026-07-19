@@ -1,8 +1,6 @@
-package com.bubbletea.order.prresentation.internal.dto;
+package com.bubbletea.order.presentation.internal.dto;
 
 import java.math.BigDecimal;
-import lombok.Builder;
-import org.springframework.core.annotation.Order;
 
 public record OrderAmountResponseDto(
     Long memberId,
