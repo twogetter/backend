@@ -12,8 +12,11 @@ import com.bubbletea.chat.domain.repository.ChatMessageRepository;
 import com.bubbletea.chat.domain.repository.ChatRoomRepository;
 import com.bubbletea.chat.presentation.controller.dto.ChatMessageCreateRequestDto;
 import com.bubbletea.common.exception.AppException;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,5 +64,46 @@ public class ChatMessageService {
     log.info("메시지 저장 성공! id={}, roomId={}, senderId={}", savedMessage.getId(), roomId, senderId);
 
     return ChatMessageResponseDto.from(savedMessage);
+  }
+
+  @Transactional
+  public List<ChatMessageResponseDto> getAll(
+      Long roomId,
+      Long requesterId,
+      ParticipantRole role,
+      Long cursorId,
+      int size
+  ) {
+    ChatRoom room = chatRoomRepository.findById(roomId)
+        .orElseThrow(() -> new AppException(ChatErrorCode.CHAT_ROOM_NOT_FOUND));
+
+    if (room.getStatus() != ChatRoomStatus.ACTIVE) {
+      throw new AppException(ChatErrorCode.CHAT_ROOM_NOT_FOUND);
+    }
+
+    activeParticipantValidator.validate(roomId, requesterId, role);
+
+    Pageable pageable = PageRequest.of(0, size);
+    List<ChatMessage> messages;
+
+    if (role == ParticipantRole.ARTIST) {
+      if (cursorId == null) {
+        messages = chatMessageRepository.findByRoomIdOrderByIdDesc(roomId, pageable);
+      } else {
+        messages = chatMessageRepository.findByRoomIdAndIdLessThanOrderByIdDesc(roomId, cursorId,
+            pageable);
+      }
+    } else {
+      if (cursorId == null) {
+        messages = chatMessageRepository.findFanMessages(roomId, requesterId, pageable);
+      } else {
+        messages = chatMessageRepository.findFanMessagesWithCursor(roomId, requesterId, cursorId,
+            pageable);
+      }
+    }
+
+    return messages.stream()
+        .map(ChatMessageResponseDto::from)
+        .toList();
   }
 }
