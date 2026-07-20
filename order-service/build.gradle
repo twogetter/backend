@@ -17,6 +17,8 @@ dependencies {
 
     // feignClient
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    runtimeOnly 'org.postgresql:postgresql'
 }
 
 tasks.register("prepareKotlinBuildScriptModel"){}

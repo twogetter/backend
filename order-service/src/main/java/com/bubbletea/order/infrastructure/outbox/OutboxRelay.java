@@ -2,9 +2,10 @@ package com.bubbletea.order.infrastructure.outbox;
 
 import com.bubbletea.order.domain.entity.OutboxEvent;
 import com.bubbletea.order.domain.enums.OutboxStatus;
-import com.bubbletea.order.domain.repository.BillingScheduleRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -28,7 +29,7 @@ public class OutboxRelay {
   private static final String HEADER_EVENT_TYPE = "eventType";
   private static final String DOMAIN_NAME = "order";
 
-  private final BillingScheduleRepository.OutboxEventRepository outboxEventRepository;
+  private final OutboxEventRepository outboxEventRepository;
   private final KafkaTemplate<String, Object> kafkaTemplate;
   private final ObjectMapper objectMapper;
 
@@ -45,13 +46,20 @@ public class OutboxRelay {
       try {
         // 저장된 JSON 문자열을 다시 객체로 파싱해 JacksonJsonSerializer가 유효한 JSON으로 재직렬화
         Object payload = objectMapper.readValue(event.getPayload(), Object.class);
-        Message<Object> message = MessageBuilder
+        MessageBuilder<Object> builder = MessageBuilder
             .withPayload(payload)
             .setHeader(KafkaHeaders.TOPIC, event.getTopic())
             .setHeader(KafkaHeaders.KEY, event.getMessageKey())
             .setHeader(HEADER_DOMAIN, DOMAIN_NAME)
-            .setHeader(HEADER_EVENT_TYPE, event.getEventType())
-            .build();
+            .setHeader(HEADER_EVENT_TYPE, event.getEventType());
+
+        // 소비 측이 요구하는 추가 헤더(예: X-User-Id)를 그대로 전달한다.
+        if (event.getHeaders() != null) {
+          Map<String, String> extraHeaders =
+              objectMapper.readValue(event.getHeaders(), new TypeReference<>() {});
+          extraHeaders.forEach(builder::setHeader);
+        }
+        Message<Object> message = builder.build();
 
         kafkaTemplate.send(message).get(); // 발행 확인 후 상태 전이
         event.markPublished();

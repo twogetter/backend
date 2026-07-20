@@ -55,9 +55,9 @@ public class SubscriptionOrderFacade {
     } catch (Exception e) {
       // Feign 네트워크/HTTP(타임아웃·5xx 등) 예외를 실패로 변환해 TX2 보상(소프트 삭제 + PaymentFailed 아웃박스)이 실행되게 한다.
       // 타임아웃 등 모호한 실패는 실제 결제가 성공했을 수 있어 후속 정산/멱등 처리가 필요(추후 작업).
-      log.warn("[Subscription] 결제 호출 예외 → 실패 처리. orderId={}, error={}", ctx.orderId(), e.getMessage());
+      log.warn("[Subscription] 결제 호출 예외 → 실패 처리. orderId={}", ctx.orderId(), e);
       success = false;
-      failReason = PAYMENT_CALL_FAILED + ": " + e.getMessage();
+      failReason = PAYMENT_CALL_FAILED;
     }
 
     // 3. TX2 - 결제 결과 반영 (성공: 활성화+이벤트 / 실패: 이벤트 기록 후 롤백)

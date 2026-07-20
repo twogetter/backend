@@ -57,6 +57,11 @@ public class Subscription {
     this.status = SubscriptionStatus.ACTIVE;
   }
 
+  /** 정기결제 실패 시 구독을 일시정지한다(배치 대상에서 제외, 이력은 보존). */
+  public void pause() {
+    this.status = SubscriptionStatus.PAUSED;
+  }
+
   public void softDelete() {
     this.status = SubscriptionStatus.CANCELED;
     this.endedAt = LocalDateTime.now();

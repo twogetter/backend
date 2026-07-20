@@ -72,6 +72,10 @@ public class SubscriptionOrder {
     this.status = OrderStatus.COMPLETED;
   }
 
+  public void fail() {
+    this.status = OrderStatus.FAILED;
+  }
+
   public void softDelete() {
     this.status = OrderStatus.FAILED;
     this.deletedAt = LocalDateTime.now();
