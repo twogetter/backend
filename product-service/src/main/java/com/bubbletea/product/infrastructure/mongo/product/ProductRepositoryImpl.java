@@ -33,6 +33,9 @@ class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public Optional<Product> findByPid(Long pid) {
+        return productMongoRepository.findByPid(pid);
+    }
 
     @Override
     public boolean existsByArtistIdAndDeletedFalse(Long artistId) {

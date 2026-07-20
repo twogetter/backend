@@ -10,7 +10,9 @@ public interface ProductRepository {
 
     Optional<Product> findById(String productId);
 
-    Optional<Product> findByArtistId(Long artistId);
+    Optional<Product> findByPid(Long pid);
+
+    boolean existsByArtistIdAndDeletedFalse(Long artistId);
 
     Optional<Product> findActiveProductById(String productId);
 

@@ -37,6 +37,8 @@ public class Product extends BaseTimeEntity {
     @Id
     private String id;
 
+    private Long pid;
+
     @Indexed(unique = true, partialFilter = "{ 'deleted': false }")
     private Long artistId;
 
@@ -68,6 +70,7 @@ public class Product extends BaseTimeEntity {
         Long artistId, String artistName, String groupName,
         String description, String imageUrl, long price, LocalDateTime openDate
     ) {
+        this.pid = artistId;
         this.artistId = artistId;
         this.artistName = artistName;
         this.groupName = groupName;

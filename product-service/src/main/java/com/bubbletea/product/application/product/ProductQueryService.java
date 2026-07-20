@@ -30,6 +30,12 @@ public class ProductQueryService {
         return ProductDetailResponseDto.from(product);
     }
 
+    public ProductDetailResponseDto getProductDetailByPid(Long pid) {
+        Product product = productRepository.findByPid(pid)
+            .orElseThrow(() -> new AppException(ProductErrorCode.PRODUCT_NOT_FOUND));
+        return ProductDetailResponseDto.from(product);
+    }
+
     public ProductListResponseDto getProductList(String groupName, String cursor, int size) {
         DecodedCursor decodedCursor = CursorCodec.decode(cursor);
 

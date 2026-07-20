@@ -6,7 +6,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 interface ProductMongoRepository extends MongoRepository<Product, String> {
 
-    Optional<Product> findByArtistId(Long artistId);
+    Optional<Product> findByPid(Long pid);
 
     boolean existsByArtistIdAndDeletedFalse(Long artistId);
 }

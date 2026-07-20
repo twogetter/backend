@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 public record ProductDetailResponseDto(
     String id,
+    Long pid,
     Long artistId,
     String artistName,
     String groupName,
@@ -20,6 +21,7 @@ public record ProductDetailResponseDto(
     public static ProductDetailResponseDto from(Product product) {
         return new ProductDetailResponseDto(
             product.getId(),
+            product.getPid(),
             product.getArtistId(),
             product.getArtistName(),
             product.getGroupName(),
