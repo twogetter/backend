@@ -74,10 +74,19 @@ public class BillingSchedule {
     this.nextBillingDate = LocalDate.now().plusMonths(1);
   }
 
-  /** 정기결제 성공 시 다음 결제일을 한 달 뒤로 이월한다(결제 주기 유지). */
+  /**
+   * 정기결제 성공 시 다음 결제일을 한 달 뒤로 이월(결제 주기 유지).
+   * 배치 지연 등으로 이월 후에도 여전히 과거면 미래가 될 때까지 이월해, 다음 배치의 연속 청구를 방지
+   * (미납분 소급청구는 하지 않는 정책 — 필요 시 별도 구현)
+   */
   public void renew() {
     LocalDate base = (nextBillingDate != null) ? nextBillingDate : LocalDate.now();
-    this.nextBillingDate = base.plusMonths(1);
+    LocalDate today = LocalDate.now();
+    LocalDate next = base.plusMonths(1);
+    while (!next.isAfter(today)) {
+      next = next.plusMonths(1);
+    }
+    this.nextBillingDate = next;
   }
 
   public void softDelete() {
