@@ -53,4 +53,14 @@ public class PaymentOutboxScheduler {
             }
         }
     }
+
+    @Scheduled(fixedDelay = 300000)
+    public void cleanupStaleOutboxEvents() {
+
+        int cleanedCount = outboxRepository.cleanupStaleProcessingEvents();
+
+        if (cleanedCount > 0) {
+            log.warn("[Outbox Cleanup] 서버 장애로 고립되었던 좀비 레코드 {}건을 PENDING으로 안전하게 복구했습니다.", cleanedCount);
+        }
+    }
 }

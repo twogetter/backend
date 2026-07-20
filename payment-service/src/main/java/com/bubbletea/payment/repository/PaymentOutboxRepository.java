@@ -24,4 +24,13 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
     @Query("UPDATE PaymentOutbox p SET p.status = 'PENDING', p.processorId = null " +
             "WHERE p.status = 'PROCESSING' AND p.processorId = :processorId")
     void rollbackMyProcessingToPending(@Param("processorId") String processorId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE payment_outbox SET status = 'PENDING', processor_id = null, updated_at = NOW() " +
+            "WHERE status = 'PROCESSING' " +
+            "AND updated_at < NOW() - INTERVAL '5 minutes'",
+            nativeQuery = true)
+    int cleanupStaleProcessingEvents();
+
 }
