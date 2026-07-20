@@ -5,9 +5,9 @@ import com.bubbletea.order.domain.entity.Subscription;
 import com.bubbletea.order.domain.enums.SubscriptionStatus;
 import com.bubbletea.order.domain.event.SubscriptionRenewalEvent;
 import com.bubbletea.order.domain.repository.BillingScheduleRepository;
-import com.bubbletea.order.infrastructure.kafka.producer.OrderEventPublisher;
+import com.bubbletea.order.infrastructure.kafka.OrderKafkaTopic;
+import com.bubbletea.order.infrastructure.outbox.OutboxRecorder;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,26 +15,26 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 정기결제 임박 알림 발행.
- * 결제 예정일이 정확히 (오늘 + N일)인 활성 스케줄을 찾아 회원별로 {@link SubscriptionRenewalEvent}를 발행한다.
- * 정확히 하루만 매칭하므로 배치가 하루 1회 실행되면 스케줄당 알림은 1회만 발송된다(중복 방지).
- * 상태 변경이 없는 순수 read → publish라 아웃박스(dual-write) 대상이 아니며 직접 발행한다.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RenewalReminderService {
 
+  private static final String AGGREGATE_TYPE = "Subscription";
+  private static final String EVENT_TYPE = "RenewalReminder";
+
   @Value("${order.renewal.remind-days-before:3}")
   private int remindDaysBefore;
 
   private final BillingScheduleRepository billingScheduleRepository;
-  private final OrderEventPublisher orderEventPublisher;
+  private final OutboxRecorder outboxRecorder;
 
-  @Transactional(readOnly = true)
+  @Transactional
   public void sendImminentRenewalReminders() {
-    LocalDate targetDate = LocalDate.now().plusDays(remindDaysBefore);
+    // 기준일은 한 번만 캡처해 조회(오늘+N)와 daysLeft가 자정 경계에서 어긋나지 않게 한다.
+    LocalDate today = LocalDate.now();
+    LocalDate targetDate = today.plusDays(remindDaysBefore);
+
     List<BillingSchedule> schedules =
         billingScheduleRepository.findByStatusAndNextBillingDate(SubscriptionStatus.ACTIVE, targetDate);
     if (schedules.isEmpty()) {
@@ -42,20 +42,14 @@ public class RenewalReminderService {
     }
     log.info("[RenewalReminder] 임박 알림 대상 {}건 (결제예정일={})", schedules.size(), targetDate);
 
-    int sent = 0;
     for (BillingSchedule schedule : schedules) {
-      try {
-        Subscription subscription = schedule.getSubscription();
-        int daysLeft = (int) ChronoUnit.DAYS.between(LocalDate.now(), schedule.getNextBillingDate());
-        orderEventPublisher.sendSubscriptionRenewalEvent(SubscriptionRenewalEvent.of(
-            subscription.getMemberId(), subscription.getProductName(), schedule.getAmount(),
-            daysLeft, schedule.getNextBillingDate()));
-        sent++;
-      } catch (Exception e) {
-        // 한 건 실패가 배치 전체를 막지 않도록 격리(알림은 순수 발행이라 다음 실행 재시도는 하지 않음).
-        log.error("[RenewalReminder] 알림 발행 실패. scheduleId={}, error={}", schedule.getId(), e.getMessage(), e);
-      }
+      Subscription subscription = schedule.getSubscription();
+      SubscriptionRenewalEvent event = SubscriptionRenewalEvent.of(
+          subscription.getMemberId(), subscription.getProductName(), schedule.getAmount(),
+          remindDaysBefore, schedule.getNextBillingDate());
+      outboxRecorder.record(AGGREGATE_TYPE, subscription.getId(), EVENT_TYPE,
+          OrderKafkaTopic.RENEWAL_SUBSCRIPTION, String.valueOf(subscription.getMemberId()), event);
     }
-    log.info("[RenewalReminder] 임박 알림 발행 완료. 성공 {}/{}", sent, schedules.size());
+    log.info("[RenewalReminder] 임박 알림 아웃박스 기록 완료. {}건", schedules.size());
   }
 }
