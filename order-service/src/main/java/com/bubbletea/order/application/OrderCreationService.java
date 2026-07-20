@@ -27,7 +27,7 @@ public class OrderCreationService {
   @Transactional
   public CreatedOrderContextDto createPendingOrder(Long memberId, ProductInfoResponseDto product,
       Long paymentMethodId) {
-    Subscription subscription = new Subscription(memberId, product.productId());
+    Subscription subscription = new Subscription(memberId, product.productId(), product.productName());
     BillingSchedule schedule =
         new BillingSchedule(subscription, paymentMethodId, product.price());
     SubscriptionOrder order = schedule.createOrder();

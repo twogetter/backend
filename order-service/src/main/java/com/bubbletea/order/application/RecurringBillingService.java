@@ -26,7 +26,7 @@ public class RecurringBillingService {
   private static final String AGGREGATE_TYPE = "Subscription";
   private static final String EVENT_TYPE = "BillingRequested";
   private static final String CURRENCY = "KRW";
-  private static final String ORDER_NAME = "정기 구독 결제"; // TODO 상품명 노출 규약 확정
+  private static final String ORDER_NAME = "정기 구독 결제"; // 구독에 상품명이 없을 때의 폴백
   private static final String USER_HEADER = "X-User-Id";
   private static final String TOSS_ORDER_ID_PREFIX = "SUB-";
 
@@ -65,9 +65,10 @@ public class RecurringBillingService {
     subscriptionOrderRepository.save(order);
 
     String tossOrderId = TOSS_ORDER_ID_PREFIX + order.getId();
+    String orderName = (subscription.getProductName() != null) ? subscription.getProductName() : ORDER_NAME;
     BillingRequestedEvent event = BillingRequestedEvent.of(
         order.getId(), schedule.getPaymentMethodId(), tossOrderId,
-        CURRENCY, ORDER_NAME, order.getAmount());
+        CURRENCY, orderName, order.getAmount());
 
     // key=orderId, header X-User-Id=memberId (payment 소비자 계약)
     outboxRecorder.record(AGGREGATE_TYPE, subscription.getId(), EVENT_TYPE,
