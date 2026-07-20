@@ -40,13 +40,16 @@ public interface PostgresTestContainer {
 
             StringBuilder tables = new StringBuilder();
             try (ResultSet rs = stmt.executeQuery(
-                "SELECT tablename FROM pg_tables WHERE schemaname = 'public' "
-                    + "AND tablename NOT IN ('flyway_schema_history')")) {
+                "SELECT format('%I.%I', schemaname, tablename) " +
+                    "FROM pg_tables " +
+                    "WHERE schemaname = 'public' " +
+                    "AND tablename NOT IN ('flyway_schema_history')")) {
+
                 while (rs.next()) {
                     if (!tables.isEmpty()) {
                         tables.append(", ");
                     }
-                    tables.append("\"").append(rs.getString(1)).append("\"");
+                    tables.append(rs.getString(1)); // 이미 quoting된 식별자 그대로 사용
                 }
             }
 
