@@ -24,7 +24,10 @@ public enum PaymentErrorCode implements ErrorCode {
     PAYMENT_CANCEL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "500", "결제 취소 처리 중 오류가 발생했습니다"),
     CANCEL_UNKNOWN_HOLD(HttpStatus.BAD_REQUEST, "400", "취소 상태가 알 수 없는 보류 상태입니다. 시간이 지난 후 다시 확인해주세요."),
     PAYMENT_CANCEL_NOT_FOUND(HttpStatus.NOT_FOUND, "404", "결제 취소 정보를 찾을 수 없습니다"),
-    SYSTEM_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "500", "시스템 오류");
+    SYSTEM_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "500", "시스템 오류"),
+    PAYMENT_NOT_READY(HttpStatus.BAD_REQUEST, "400", "결제가 준비 상태가 아닙니다"),
+    REGULAR_PAYMENT_METHOD_REQUIRED(HttpStatus.BAD_REQUEST, "400", "정기 결제 수단으로 등록이 필요합니다")
+    ;
 
     private final HttpStatus httpStatus;
     private final String code;

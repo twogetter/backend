@@ -29,7 +29,7 @@ public class PaymentController {
     private final PaymentConfirmFacade paymentConfirmFacade;
     private final PaymentCancelFacade paymentCancelFacade;
 
-    @PostMapping("/confirm/brandpay") //등록 다건 결제
+    @PostMapping("/confirm/brandpay")
     public ApiResponse<String> confirmPayment(@RequestBody PaymentConfirmRequestDto dto) {
         paymentConfirmFacade.confirm(dto);
         return ApiResponse.success(dto.amount() + "원 결제가 완료되었습니다.");

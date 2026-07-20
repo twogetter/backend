@@ -1,20 +1,18 @@
 package com.bubbletea.payment.service;
 
 import com.bubbletea.payment.entity.Payment;
-import com.bubbletea.payment.entity.PaymentHistory;
 import com.bubbletea.payment.entity.PaymentMethod;
 import com.bubbletea.payment.entity.UserBrandpayAuth;
+import com.bubbletea.payment.entity.enums.PaymentMethodType;
 import com.bubbletea.payment.entity.enums.PaymentStatus;
 import com.bubbletea.payment.global.exception.PaymentErrorCode;
 import com.bubbletea.payment.global.exception.PaymentSystemException;
-import com.bubbletea.payment.infrastructure.kafka.PaymentEventPublisher;
 import com.bubbletea.payment.infrastructure.kafka.dto.BillingEvent;
-import com.bubbletea.payment.infrastructure.kafka.dto.PaymentResultEvent;
-import com.bubbletea.payment.repository.PaymentHistoryRepository;
 import com.bubbletea.payment.repository.PaymentMethodRepository;
 import com.bubbletea.payment.repository.PaymentRepository;
 import com.bubbletea.payment.service.dto.data.BillingConfirmData;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,22 +25,41 @@ public class BillingService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentMethodRepository paymentMethodRepository;
-    private final PaymentHistoryRepository paymentHistoryRepository;
-    private final PaymentEventPublisher paymentEventPublisher;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public BillingConfirmData createReadyPayment(Long userId, Long orderId, BillingEvent event) {
 
+        Optional<Payment> existingPayment = paymentRepository.findByOrderId(orderId);
+
+        if (existingPayment.isPresent()) {
+            if(existingPayment.get().getStatus() != PaymentStatus.READY) {
+                throw new PaymentSystemException(PaymentErrorCode.PAYMENT_NOT_READY);
+            }
+            if(!Objects.equals(existingPayment.get().getUserId(), userId)) {
+                throw new PaymentSystemException(PaymentErrorCode.PAYMENT_NOT_FOUND);
+            }
+            Payment payment = existingPayment.get();
+            PaymentMethod method = payment.getPaymentMethod();
+            UserBrandpayAuth auth = method.getUserBrandpayAuth();
+
+            return BillingConfirmData.builder()
+                    .paymentId(payment.getId())
+                    .customerKey(auth.getCustomerKey())
+                    .methodKey(method.getTossMethodKey())
+                    .idempotencyKey(payment.getIdempotencyKey())
+                    .build();
+        }
+
         PaymentMethod paymentMethod = paymentMethodRepository.findById(event.methodId())
                 .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.PAYMENT_METHOD_NOT_FOUND));
+
+        if(paymentMethod.getType() != PaymentMethodType.BILLING) {
+            throw new PaymentSystemException(PaymentErrorCode.REGULAR_PAYMENT_METHOD_REQUIRED);
+        }
 
         if(!Objects.equals(paymentMethod.getUserBrandpayAuth().getUserId(), userId)) {
             throw new PaymentSystemException(PaymentErrorCode.PAYMENT_METHOD_NOT_FOUND);
         }
-
-//        if (paymentRepository.existsByOrderId(orderId)) {
-//            throw new AlreadyProcessedException("이미 존재하는 주문건입니다.");
-//        }
 
         UserBrandpayAuth auth = paymentMethod.getUserBrandpayAuth();
         String idempotencyKey = "payment-confirm-" + event.orderId() + "-" + UUID.randomUUID();

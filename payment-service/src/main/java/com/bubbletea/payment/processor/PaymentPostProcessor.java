@@ -1,20 +1,23 @@
-package com.bubbletea.payment.service.processor;
+package com.bubbletea.payment.processor;
 
 import com.bubbletea.common.exception.ErrorCode;
 import com.bubbletea.payment.entity.Payment;
 import com.bubbletea.payment.entity.PaymentCancel;
 import com.bubbletea.payment.entity.PaymentHistory;
+import com.bubbletea.payment.entity.PaymentOutbox;
 import com.bubbletea.payment.entity.enums.CancelStatus;
 import com.bubbletea.payment.entity.enums.HistoryType;
+import com.bubbletea.payment.entity.enums.OutboxStatus;
+import com.bubbletea.payment.entity.enums.PaymentEventType;
 import com.bubbletea.payment.entity.enums.PaymentStatus;
 import com.bubbletea.payment.global.exception.PaymentErrorCode;
 import com.bubbletea.payment.global.exception.PaymentSystemException;
-import com.bubbletea.payment.infrastructure.kafka.PaymentEventPublisher;
 import com.bubbletea.payment.infrastructure.kafka.dto.PaymentResultEvent;
 import com.bubbletea.payment.repository.PaymentCancelRepository;
 import com.bubbletea.payment.repository.PaymentHistoryRepository;
-import com.bubbletea.payment.repository.PaymentMethodRepository;
+import com.bubbletea.payment.repository.PaymentOutboxRepository;
 import com.bubbletea.payment.repository.PaymentRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,10 +30,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentPostProcessor {
 
     private final PaymentRepository paymentRepository;
-    private final PaymentMethodRepository paymentMethodRepository;
+    private final PaymentOutboxRepository paymentOutboxRepository;
     private final PaymentHistoryRepository paymentHistoryRepository;
-    private final PaymentEventPublisher paymentEventPublisher;
     private final PaymentCancelRepository paymentCancelRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public void completePayment(Long paymentId, String paymentKey) {
@@ -52,7 +55,25 @@ public class PaymentPostProcessor {
                 "PaymentSucceeded",
                 ""
         );
-        paymentEventPublisher.publishPaymentSuccess(event);
+
+        String payload = convertToJson(event);
+
+        PaymentEventType eventTypeInfo = PaymentEventType.SUCCESS;
+
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(paymentId)
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
+
 
     }
 
@@ -76,7 +97,24 @@ public class PaymentPostProcessor {
                 "PaymentFailed",
                 errorMessage
         );
-        paymentEventPublisher.publishPaymentFailed(event);
+
+        String payload = convertToJson(event);
+
+        PaymentEventType eventTypeInfo = PaymentEventType.FAILED;
+
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(paymentId)
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
     }
 
     @Transactional
@@ -99,7 +137,23 @@ public class PaymentPostProcessor {
                 "PaymentUnknownEvent",
                 errorMessage
         );
-        paymentEventPublisher.publishPaymentHold(event);
+        String payload = convertToJson(event);
+
+        PaymentEventType eventTypeInfo = PaymentEventType.HOLD;
+
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(paymentId)
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
     }
 
     @Transactional
@@ -133,8 +187,23 @@ public class PaymentPostProcessor {
                 "PaymentCancelled",
                 ""
         );
-        paymentEventPublisher.publishCancelPaymentSuccess(event);
+        String payload = convertToJson(event);
 
+        PaymentEventType eventTypeInfo = PaymentEventType.CANCEL_SUCCESS;
+
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(payment.getId())
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
     }
 
     @Transactional
@@ -159,7 +228,25 @@ public class PaymentPostProcessor {
                 "PaymentCancelFailed",
                 errorMessage
         );
-        paymentEventPublisher.publishCancelPaymentFailed(event);
+//        paymentEventPublisher.publishCancelPaymentFailed(event);
+        String payload = convertToJson(event);
+
+        PaymentEventType eventTypeInfo = PaymentEventType.CANCEL_FAILED;
+
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(payment.getId())
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
+
     }
 
     @Transactional
@@ -185,7 +272,33 @@ public class PaymentPostProcessor {
                 "PaymentCancelUnknownEvent",
                 errorMessage
         );
-        paymentEventPublisher.publishCancelPaymentHold(event);
+
+        String payload = convertToJson(event);
+
+        PaymentEventType eventTypeInfo = PaymentEventType.CANCEL_HOLD;
+
+        for (String targetTopic : eventTypeInfo.getTopics()) {
+            PaymentOutbox outbox = PaymentOutbox.builder()
+                    .aggregateType("payment")
+                    .aggregateId(payment.getId())
+                    .topic(targetTopic)
+                    .eventType(eventTypeInfo.getEventTypeHeader())
+                    .messageKey(payment.getOrderId().toString())
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .build();
+
+            paymentOutboxRepository.save(outbox);
+        }
+
+    }
+
+    private String convertToJson(Object object) {
+        try {
+            return objectMapper.writeValueAsString(object);
+        } catch (Exception e) {
+            throw new RuntimeException("JSON 변환 실패", e);
+        }
     }
 
 }

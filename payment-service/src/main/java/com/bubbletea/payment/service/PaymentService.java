@@ -1,19 +1,12 @@
 package com.bubbletea.payment.service;
 
-import com.bubbletea.common.exception.ErrorCode;
 import com.bubbletea.payment.entity.Payment;
-import com.bubbletea.payment.entity.PaymentHistory;
 import com.bubbletea.payment.entity.PaymentMethod;
-import com.bubbletea.payment.entity.UserBrandpayAuth;
 import com.bubbletea.payment.entity.enums.PaymentStatus;
 import com.bubbletea.payment.global.exception.PaymentErrorCode;
 import com.bubbletea.payment.global.exception.PaymentSystemException;
-import com.bubbletea.payment.infrastructure.kafka.PaymentEventPublisher;
-import com.bubbletea.payment.infrastructure.kafka.dto.PaymentResultEvent;
-import com.bubbletea.payment.repository.PaymentHistoryRepository;
 import com.bubbletea.payment.repository.PaymentMethodRepository;
 import com.bubbletea.payment.repository.PaymentRepository;
-import com.bubbletea.payment.repository.UserBrandpayAuthRepository;
 import com.bubbletea.payment.service.dto.PaymentReadyRequestDto;
 import com.bubbletea.payment.service.dto.data.PaymentConfirmData;
 import java.math.BigDecimal;
@@ -74,6 +67,9 @@ public class PaymentService {
         Payment payment = paymentRepository.findByTossOrderId(tossOrderId)
                 .orElseThrow(() -> new PaymentSystemException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
+        if(payment.getStatus() != PaymentStatus.READY) {
+            throw new PaymentSystemException(PaymentErrorCode.PAYMENT_NOT_READY);
+        }
         return new PaymentConfirmData(payment.getId(), payment.getIdempotencyKey(), payment.getTotalAmount());
     }
 }
