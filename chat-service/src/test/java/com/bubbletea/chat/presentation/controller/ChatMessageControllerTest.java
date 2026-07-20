@@ -319,5 +319,39 @@ class ChatMessageControllerTest {
           .andExpect(jsonPath("$.status").value("ERROR"))
           .andExpect(jsonPath("$.error").value("CHAT-NOTFOUND-ROOM"));
     }
+
+    @Test
+    @DisplayName("size가 0 이하이거나 100을 초과할 경우 CHAT-INVALID-SIZE 에러를 반환한다")
+    void list_InvalidSize() throws Exception {
+      Long roomId = 1L;
+      Long userId = 2L;
+
+      // 0인 경우
+      mockMvc.perform(get("/api/chats/rooms/{roomId}/messages", roomId)
+              .header("X-User-Id", userId)
+              .header("X-User-Role", "USER")
+              .param("size", "0"))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.status").value("ERROR"))
+          .andExpect(jsonPath("$.error").value("CHAT-INVALID-SIZE"));
+
+      // 음수인 경우
+      mockMvc.perform(get("/api/chats/rooms/{roomId}/messages", roomId)
+              .header("X-User-Id", userId)
+              .header("X-User-Role", "USER")
+              .param("size", "-5"))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.status").value("ERROR"))
+          .andExpect(jsonPath("$.error").value("CHAT-INVALID-SIZE"));
+
+      // 100 초과인 경우
+      mockMvc.perform(get("/api/chats/rooms/{roomId}/messages", roomId)
+              .header("X-User-Id", userId)
+              .header("X-User-Role", "USER")
+              .param("size", "101"))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.status").value("ERROR"))
+          .andExpect(jsonPath("$.error").value("CHAT-INVALID-SIZE"));
+    }
   }
 }

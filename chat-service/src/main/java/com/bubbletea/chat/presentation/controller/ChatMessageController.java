@@ -59,6 +59,10 @@ public class ChatMessageController {
       throw new AppException(ChatErrorCode.INVALID_ROLE);
     }
 
+    if (size < 1 || size > 100) {
+      throw new AppException(ChatErrorCode.INVALID_SIZE);
+    }
+
     List<ChatMessageResponseDto> response = chatMessageService.getAll(
         roomId,
         context.userId(),
