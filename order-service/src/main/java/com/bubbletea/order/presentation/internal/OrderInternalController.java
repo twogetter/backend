@@ -1,9 +1,9 @@
 package com.bubbletea.order.presentation.internal;
 
+import com.bubbletea.order.application.OrderInternalService;
 import com.bubbletea.order.domain.event.SubscriptionRenewalEvent;
 import com.bubbletea.order.infrastructure.kafka.producer.OrderEventPublisher;
 import com.bubbletea.order.presentation.internal.dto.OrderAmountResponseDto;
-import java.math.BigDecimal;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,12 +20,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class OrderInternalController {
 
+  private final OrderInternalService orderInternalService;
+
+  /** payment-service가 결제 전 주문 금액을 검증하기 위해 호출하는 콜백. */
   @GetMapping("/{orderId}/amount")
   public ResponseEntity<OrderAmountResponseDto> verifyOrderAmount(
       @PathVariable("orderId") Long orderId) {
-
-    OrderAmountResponseDto response = OrderAmountResponseDto.of(100L, orderId, BigDecimal.valueOf(4900));
-    return ResponseEntity.ok(response);
+    return ResponseEntity.ok(orderInternalService.getOrderAmount(orderId));
   }
 
 
