@@ -21,8 +21,14 @@ try {
 try {
   print('🔄 productdb 인덱스 생성 시작');
 
-  db.products.createIndex({artistId: 1},
-      {unique: true, name: "idx_artist_unique"});
+  db.products.createIndex(
+      {artistId: 1},
+      {
+        name: "idx_artist_unique",
+        unique: true,
+        partialFilterExpression: {deleted: false},
+      }
+  );
 
   db.product_outbox_events.createIndex({idempotencyKey: 1},
       {unique: true, name: "idx_idempotencyKey_unique"});
