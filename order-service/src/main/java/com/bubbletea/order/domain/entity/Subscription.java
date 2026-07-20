@@ -35,6 +35,10 @@ public class Subscription {
   @Column(name = "product_id", nullable = false)
   private Long productId;
 
+  /** 상품명 비정규화 저장(알림·청구 표시명 용도, 조회 시 product-service 재호출 회피). */
+  @Column(name = "product_name")
+  private String productName;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false)
   private SubscriptionStatus status;
@@ -47,9 +51,10 @@ public class Subscription {
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 
-  public Subscription(Long memberId, Long productId) {
+  public Subscription(Long memberId, Long productId, String productName) {
     this.memberId = memberId;
     this.productId = productId;
+    this.productName = productName;
     this.status = SubscriptionStatus.PENDING;
   }
 
