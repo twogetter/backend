@@ -1,6 +1,7 @@
 spring:
   application:
     name: gateway-server
+
   config:
     import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
 
@@ -10,15 +11,13 @@ spring:
         webflux:
           discovery:
             locator:
-              enabled: true
-              lower-case-service-id: true
+              enabled: false
+
           routes:
             - id: auth-service
               uri: lb://AUTH-SERVICE
               predicates:
                 - Path=/api/auth/**
-              filters:
-                - StripPrefix=0
 
             - id: user-service
               uri: lb://USER-SERVICE
@@ -60,6 +59,7 @@ management:
     web:
       exposure:
         include: health,info,gateway
+
   endpoint:
     gateway:
       enabled: true
