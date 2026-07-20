@@ -31,7 +31,6 @@ public class RenewalReminderService {
 
   @Transactional
   public void sendImminentRenewalReminders() {
-    // 기준일은 한 번만 캡처해 조회(오늘+N)와 daysLeft가 자정 경계에서 어긋나지 않게 한다.
     LocalDate today = LocalDate.now();
     LocalDate targetDate = today.plusDays(remindDaysBefore);
 
