@@ -39,6 +39,12 @@ public enum ChatErrorCode implements ErrorCode {
       "유효하지 않은 참여자 역할입니다."
   ),
 
+  INVALID_SIZE(
+      HttpStatus.BAD_REQUEST,
+      "CHAT-INVALID-SIZE",
+      "페이지 크기는 1에서 100 사이여야 합니다."
+  ),
+
   EXCEEDED_DAILY_LIMIT(
       HttpStatus.BAD_REQUEST,
       "CHAT-EXCEEDED-DAILY_LIMIT",
