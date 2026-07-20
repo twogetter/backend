@@ -77,6 +77,10 @@ public class JwtAuthenticationFilter
                                 AuthenticationHeaders.AUTHORIZATION
                         );
 
+        /*
+         * Authorization 헤더가 없거나
+         * 공백 문자열인 경우 인증을 거부합니다.
+         */
         if (
                 authorizationHeader == null
                         || authorizationHeader.isBlank()
@@ -88,11 +92,16 @@ public class JwtAuthenticationFilter
             );
         }
 
-        if (
-                !authorizationHeader.startsWith(
-                        AuthenticationHeaders.BEARER_PREFIX
-                )
-        ) {
+        /*
+         * Bearer 인증 스킴은 대소문자를 구분하지 않습니다.
+         *
+         * 다음 형식을 모두 허용합니다.
+         * Bearer token
+         * bearer token
+         * BEARER token
+         * BeArEr token
+         */
+        if (!hasBearerPrefix(authorizationHeader)) {
             return writeUnauthorizedResponse(
                     sanitizedExchange,
                     TOKEN_FORMAT_INVALID_CODE,
@@ -100,11 +109,18 @@ public class JwtAuthenticationFilter
             );
         }
 
+        /*
+         * Bearer 접두사 이후의 Access Token 문자열만 추출합니다.
+         */
         String accessToken =
                 authorizationHeader.substring(
                         AuthenticationHeaders.BEARER_PREFIX.length()
                 ).trim();
 
+        /*
+         * Authorization: Bearer 와 같이
+         * 실제 토큰 값이 없는 경우 인증을 거부합니다.
+         */
         if (accessToken.isBlank()) {
             return writeUnauthorizedResponse(
                     sanitizedExchange,
@@ -114,11 +130,19 @@ public class JwtAuthenticationFilter
         }
 
         try {
+            /*
+             * Access Token의 서명, 만료 시간, 토큰 타입 등을
+             * 검증하고 사용자 정보를 추출합니다.
+             */
             JwtClaims jwtClaims =
                     gatewayJwtProvider.validateAccessToken(
                             accessToken
                     );
 
+            /*
+             * JWT에서 추출한 회원 ID와 역할을
+             * 내부 인증 헤더에 추가합니다.
+             */
             ServerWebExchange authenticatedExchange =
                     addAuthenticationHeaders(
                             sanitizedExchange,
@@ -134,6 +158,25 @@ public class JwtAuthenticationFilter
                     exception.getMessage()
             );
         }
+    }
+
+    /**
+     * Authorization 헤더가 Bearer 인증 스킴으로 시작하는지
+     * 대소문자를 구분하지 않고 확인합니다.
+     *
+     * @param authorizationHeader Authorization 헤더 값
+     * @return Bearer 접두사로 시작하면 true
+     */
+    private boolean hasBearerPrefix(
+            String authorizationHeader
+    ) {
+        return authorizationHeader.regionMatches(
+                true,
+                0,
+                AuthenticationHeaders.BEARER_PREFIX,
+                0,
+                AuthenticationHeaders.BEARER_PREFIX.length()
+        );
     }
 
     /**

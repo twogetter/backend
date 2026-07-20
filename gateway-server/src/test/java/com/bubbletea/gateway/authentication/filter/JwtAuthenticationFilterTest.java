@@ -10,6 +10,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -288,9 +290,17 @@ class JwtAuthenticationFilterTest {
         );
     }
 
-    @Test
-    @DisplayName("정상 Access Token이면 회원 ID와 역할을 내부 헤더에 추가한다")
-    void validAccessTokenAddsAuthenticationHeaders() {
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "Bearer",
+            "bearer",
+            "BEARER",
+            "BeArEr"
+    })
+    @DisplayName("Bearer 인증 스킴은 대소문자를 구분하지 않고 허용한다")
+    void bearerSchemeIsCaseInsensitive(
+            String bearerScheme
+    ) {
         // given
         String accessToken = createToken(
                 1L,
@@ -304,7 +314,9 @@ class JwtAuthenticationFilterTest {
                                 .get("/api/users/me")
                                 .header(
                                         HttpHeaders.AUTHORIZATION,
-                                        "Bearer " + accessToken
+                                        bearerScheme
+                                                + " "
+                                                + accessToken
                                 )
                                 .build()
                 );
