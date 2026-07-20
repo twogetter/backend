@@ -1,0 +1,25 @@
+apply plugin: 'java-library'
+
+dependencies {
+
+    api 'org.springframework.boot:spring-boot-starter-web'
+    api 'org.springframework.boot:spring-boot-starter-test'
+    api 'org.springframework.boot:spring-boot-starter-data-mongodb-test'
+    api 'org.springframework.boot:spring-boot-starter-validation'
+
+    api 'org.testcontainers:junit-jupiter'
+    api 'org.testcontainers:postgresql'
+    api 'org.testcontainers:mongodb'
+    api 'org.testcontainers:kafka'
+    api 'io.lettuce:lettuce-core'
+    api 'org.postgresql:postgresql'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}
+
+jar {
+    enabled = true
+}
+
+tasks.register("prepareKotlinBuildScriptModel"){}
