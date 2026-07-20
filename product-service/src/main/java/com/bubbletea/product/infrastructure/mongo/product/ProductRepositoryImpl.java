@@ -33,7 +33,9 @@ class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
-    public boolean existsByArtistIdAndDeletedFalse(String artistId) {
+
+    @Override
+    public boolean existsByArtistIdAndDeletedFalse(Long artistId) {
         return productMongoRepository.existsByArtistIdAndDeletedFalse(artistId);
     }
 

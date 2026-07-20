@@ -14,7 +14,7 @@ public class ProductChatEventService {
     private final ProductEventPublisher productEventPublisher;
 
     public void productRegistered(
-        String idempotencyKey, String artistId, LocalDateTime registeredAt) {
+        String idempotencyKey, Long artistId, LocalDateTime registeredAt) {
         productEventPublisher.publish(idempotencyKey,
             new ProductRegisteredEvent(artistId, registeredAt));
     }
