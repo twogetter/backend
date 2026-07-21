@@ -31,8 +31,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TossBrandpayApiClient {
 
-    private static final String BRANDPAY_API_BASE_URL = "https://api.tosspayments.com/v1";
-
     @Value("${toss.payments.api-secret-key}")
     private String apiSecretKey;
 
