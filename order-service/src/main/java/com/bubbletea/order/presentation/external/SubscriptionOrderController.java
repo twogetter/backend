@@ -26,8 +26,9 @@ public class SubscriptionOrderController {
       @Valid @RequestBody SubscriptionCreateRequestDto request) {
 
     OrderResponseDto response = subscriptionOrderFacade.createSubscription(memberId, request);
+    // 비동기 처리: 주문을 접수(PENDING)하고 결과는 이후 결제 결과 이벤트로 확정된다.
     return ResponseEntity
-        .status(HttpStatus.CREATED)
-        .body(ApiResponse.success(response, "구독 주문이 생성되었습니다."));
+        .status(HttpStatus.ACCEPTED)
+        .body(ApiResponse.success(response, "구독 주문이 접수되었습니다. 결제 처리 중입니다."));
   }
 }
