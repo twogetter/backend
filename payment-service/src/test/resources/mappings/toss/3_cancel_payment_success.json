@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/payments/[^/]+/cancel"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "jsonBody": {
+      "paymentKey": "{{request.path.[1]}}",
+      "status": "CANCELLED",
+      "cancels": [
+        {
+          "cancellationKey": "cxl-1",
+          "cancelAmount": "{{jsonPath request.body '$.cancelAmount'}}",
+          "cancelReason": "{{jsonPath request.body '$.cancelReason'}}",
+          "canceledAt": "{{now format='yyyy-MM-dd-HH:mm:ss'}}"
+        }
+      ]
+    },
+    "transformers": ["response-template"]
+  }
+}

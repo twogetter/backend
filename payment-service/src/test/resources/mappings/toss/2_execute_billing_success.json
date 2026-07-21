@@ -1,0 +1,34 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/brandpay/payments"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "jsonBody": {
+      "paymentKey": "mock-billing-key-{{randomValue type='UUID'}}",
+      "orderId": "{{jsonPath request.body '$.orderId'}}",
+      "orderName": "정기 결제 이용권",
+      "status": "DONE",
+      "requestedAt": "{{now format='yyyy-MM-dd-HH:mm:ss'}}",
+      "approvedAt": "{{now format='yyyy-MM-dd-HH:mm:ss'}}",
+
+      "totalAmount": "{{jsonPath request.body '$.amount'}}",
+      "balanceAmount": "{{jsonPath request.body '$.amount'}}",
+      "type": "BRANDPAY",
+
+      "card": {
+        "amount": "{{jsonPath request.body '$.amount'}}",
+        "issuerCode": "61",
+        "acquirerCode": "61",
+        "number": "1234-5678-****-****",
+        "installmentPlanMonths": 0,
+        "approveNo": "00000000"
+      }
+    },
+    "transformers": ["response-template"]
+  }
+}
