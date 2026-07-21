@@ -77,10 +77,9 @@ services:
     depends_on:
       mongo-init: { condition: service_completed_successfully }
     environment:
-      MONGO_APP_USERNAME: product_user
       MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
     volumes:
-      - ./docker/mongo-init:/scripts
+      - ./docker/mongo-seed:/scripts
     command: >
       mongosh --host mongodb --port 27017
       -u product_user -p ${MONGO_APP_PASSWORD}
