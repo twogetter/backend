@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 public record ProductResponseDto(
     String id,
     String name,
-    String artistId,
+    Long artistId,
     String artistName,
     String groupName,
     String status,

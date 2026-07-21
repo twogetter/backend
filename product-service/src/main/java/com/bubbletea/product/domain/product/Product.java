@@ -5,7 +5,6 @@ import com.bubbletea.common.exception.AppException;
 import com.bubbletea.product.domain.common.BaseTimeEntity;
 import com.bubbletea.product.domain.exception.ProductErrorCode;
 import com.bubbletea.product.domain.product.policy.ProductSchedulePolicy;
-import com.bubbletea.product.domain.reservation.ProductChangeReservation;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -38,8 +37,10 @@ public class Product extends BaseTimeEntity {
     @Id
     private String id;
 
+    private Long pid;
+
     @Indexed(unique = true, partialFilter = "{ 'deleted': false }")
-    private String artistId;
+    private Long artistId;
 
     private String artistName;
 
@@ -66,9 +67,10 @@ public class Product extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     private Product(
-        String artistId, String artistName, String groupName,
+        Long artistId, String artistName, String groupName,
         String description, String imageUrl, long price, LocalDateTime openDate
     ) {
+        this.pid = artistId;
         this.artistId = artistId;
         this.artistName = artistName;
         this.groupName = groupName;
@@ -83,7 +85,7 @@ public class Product extends BaseTimeEntity {
     }
 
     public static Product schedule(
-        String artistId, String artistName, String groupName,
+        Long artistId, String artistName, String groupName,
         String description, String imageUrl, long price, LocalDateTime openDate
     ) {
         ProductSchedulePolicy.validate(openDate, LocalDateTime.now());

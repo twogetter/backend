@@ -50,7 +50,7 @@ public class ProductRegistrationService {
         return ProductResponseDto.from(savedProduct);
     }
 
-    private void validateDuplicateArtist(String artistId) {
+    private void validateDuplicateArtist(Long artistId) {
         if (productRepository.existsByArtistIdAndDeletedFalse(artistId)) {
             throw new AppException(ProductErrorCode.DUPLICATE_ARTIST_PRODUCT);
         }

@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 
 
 public record ProductRegisterRequestDto(
-    @NotBlank
-    String artistId,
+    @NotNull
+    Long artistId,
 
     @NotBlank
     String artistName,
