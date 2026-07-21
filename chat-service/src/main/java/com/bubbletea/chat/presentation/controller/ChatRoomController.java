@@ -4,11 +4,7 @@ import com.bubbletea.chat.application.dto.ChatRoomResponseDto;
 import com.bubbletea.chat.application.service.ChatParticipantService;
 import com.bubbletea.chat.application.service.ChatRoomService;
 import com.bubbletea.chat.domain.enums.ParticipantRole;
-import com.bubbletea.chat.domain.exception.ChatErrorCode;
-import com.bubbletea.chat.infrastructure.security.SecurityContext;
-import com.bubbletea.chat.infrastructure.security.SecurityContextHolder;
 import com.bubbletea.chat.presentation.controller.dto.ChatRoomReadRequestDto;
-import com.bubbletea.common.exception.AppException;
 import com.bubbletea.common.response.ApiResponse;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -42,15 +38,11 @@ public class ChatRoomController {
 
   @PatchMapping("/{roomId}/read")
   public ApiResponse<Void> read(
+      @RequestHeader("X-User-Id") Long userId,
       @PathVariable Long roomId,
       @Valid @RequestBody ChatRoomReadRequestDto requestDto
   ) {
-    SecurityContext context = SecurityContextHolder.getContext();
-    if (context == null || context.userId() == null) {
-      throw new AppException(ChatErrorCode.INVALID_ROLE);
-    }
-
-    chatParticipantService.updateLastReadId(roomId, context.userId(), requestDto.lastReadId());
+    chatParticipantService.updateLastReadId(roomId, userId, requestDto.lastReadId());
     return ApiResponse.success(null);
   }
 }

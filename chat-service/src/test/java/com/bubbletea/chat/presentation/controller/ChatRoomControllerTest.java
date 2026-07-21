@@ -13,11 +13,8 @@ import com.bubbletea.chat.application.service.ChatRoomService;
 import com.bubbletea.chat.domain.enums.ChatRoomStatus;
 import com.bubbletea.chat.domain.enums.ParticipantRole;
 import com.bubbletea.chat.domain.enums.ParticipantStatus;
-import com.bubbletea.chat.infrastructure.security.SecurityContext;
-import com.bubbletea.chat.infrastructure.security.SecurityContextHolder;
 import com.bubbletea.common.exception.GlobalExceptionHandler;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,11 +44,6 @@ class ChatRoomControllerTest {
         .standaloneSetup(chatRoomController)
         .setControllerAdvice(new GlobalExceptionHandler())
         .build();
-  }
-
-  @AfterEach
-  void tearDown() {
-    SecurityContextHolder.setContext(null);
   }
 
   @Test
@@ -127,12 +119,12 @@ class ChatRoomControllerTest {
     Long roomId = 10L;
     Long userId = 2L;
     Long lastReadId = 15L;
-    SecurityContextHolder.setContext(new SecurityContext(userId, ParticipantRole.FAN));
 
     doNothing().when(chatParticipantService).updateLastReadId(roomId, userId, lastReadId);
 
     // when & then
     mockMvc.perform(patch("/api/chats/rooms/{roomId}/read", roomId)
+            .header("X-User-Id", userId)
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"lastReadId\":15}"))
         .andExpect(status().isOk())
@@ -140,18 +132,30 @@ class ChatRoomControllerTest {
   }
 
   @Test
-  @DisplayName("로그인 정보가 없으면 읽음 처리 시 CHAT-INVALID-ROLE 에러를 반환한다")
-  void read_NoSecurityContext() throws Exception {
+  @DisplayName("로그인 정보(X-User-Id 헤더)가 없으면 400 Bad Request 에러를 반환한다")
+  void read_MissingHeader() throws Exception {
     // given
     Long roomId = 10L;
-    SecurityContextHolder.setContext(null);
 
     // when & then
     mockMvc.perform(patch("/api/chats/rooms/{roomId}/read", roomId)
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"lastReadId\":15}"))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.status").value("ERROR"))
-        .andExpect(jsonPath("$.error").value("CHAT-INVALID-ROLE"));
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("마지막 읽은 메시지 ID가 음수이면 400 Bad Request 에러를 반환한다")
+  void read_NegativeLastReadId() throws Exception {
+    // given
+    Long roomId = 10L;
+    Long userId = 2L;
+
+    // when & then
+    mockMvc.perform(patch("/api/chats/rooms/{roomId}/read", roomId)
+            .header("X-User-Id", userId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"lastReadId\":-5}"))
+        .andExpect(status().isBadRequest());
   }
 }
