@@ -3,6 +3,7 @@ apply plugin: 'org.springframework.boot'
 dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     implementation project(':common-lib')
+    testImplementation project(':common-test')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
@@ -24,6 +25,7 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.wiremock:wiremock-standalone:3.9.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 }
