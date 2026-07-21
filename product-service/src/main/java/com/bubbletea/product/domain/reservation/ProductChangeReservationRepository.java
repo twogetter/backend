@@ -4,8 +4,14 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ProductChangeReservationRepository {
+
+    Optional<ProductChangeReservation> findById(String reservationId);
+
+    Page<ProductChangeReservation> findAll(ReservationSearchCondition condition, Pageable pageable);
 
     boolean existsByProductIdAndReservationStatus(String productId, ReservationStatus status);
 

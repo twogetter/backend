@@ -33,6 +33,11 @@ public enum ProductErrorCode implements ErrorCode {
         HttpStatus.NOT_FOUND,
         "PRODUCT-NOT_FOUND-ID",
         "해당 ID의 상품을 찾을 수 없습니다."
+    ),
+    RESERVATION_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "RESERVATION-NOT_FOUND-ID",
+        "해당 ID의 예약을 찾을 수 없습니다."
     );
 
     private final HttpStatus httpStatus;
