@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPattern": "/payments/[^/]+"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "jsonBody": {
+      "paymentKey": "{{request.path.[1]}}",
+      "status": "DONE",
+      "orderId": "mock-order-id-1234",
+      "totalAmount": 10000,
+      "requestedAt": "{{now offset='-10 minutes' format='yyyy-MM-dd-HH:mm:ss'}}",
+      "approvedAt": "{{now format='yyyy-MM-dd-HH:mm:ss'}}"
+    },
+    "transformers": ["response-template"]
+  }
+}
