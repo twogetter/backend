@@ -35,17 +35,19 @@ class JwtProviderTest {
     }
 
     @Test
-    @DisplayName("Access Token을 생성하고 회원 ID와 권한을 조회한다")
+    @DisplayName("Access Token을 생성하고 회원 ID, 권한, 닉네임을 조회한다")
     void createAccessTokenSuccess() {
         // given
         Long memberId = 1L;
         String role = "USER";
+        String nickname = "테스터";
 
         // when
         String accessToken =
                 jwtProvider.createAccessToken(
                         memberId,
-                        role
+                        role,
+                        nickname
                 );
 
         // then
@@ -61,12 +63,32 @@ class JwtProviderTest {
         assertThat(jwtProvider.getRole(accessToken))
                 .isEqualTo(role);
 
+        assertThat(jwtProvider.getNickname(accessToken))
+                .isEqualTo(nickname);
+
         assertThat(jwtProvider.getTokenType(accessToken))
                 .isEqualTo(TokenType.ACCESS);
     }
 
     @Test
-    @DisplayName("Refresh Token을 생성하고 토큰 타입을 조회한다")
+    @DisplayName("닉네임이 없으면 Access Token 발급에 실패한다")
+    void createAccessTokenFailsWhenNicknameIsBlank() {
+        // when & then
+        assertThatThrownBy(
+                () -> jwtProvider.createAccessToken(
+                        1L,
+                        "USER",
+                        " "
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "Access Token에 포함할 닉네임이 필요합니다."
+                );
+    }
+
+    @Test
+    @DisplayName("Refresh Token을 생성하고 닉네임을 포함하지 않는다")
     void createRefreshTokenSuccess() {
         // given
         Long memberId = 2L;
@@ -91,6 +113,9 @@ class JwtProviderTest {
 
         assertThat(jwtProvider.getRole(refreshToken))
                 .isEqualTo(role);
+
+        assertThat(jwtProvider.getNickname(refreshToken))
+                .isNull();
 
         assertThat(jwtProvider.getTokenType(refreshToken))
                 .isEqualTo(TokenType.REFRESH);
@@ -120,7 +145,8 @@ class JwtProviderTest {
         String accessToken =
                 jwtProvider.createAccessToken(
                         1L,
-                        "USER"
+                        "USER",
+                        "테스터"
                 );
 
         // when & then
@@ -140,7 +166,8 @@ class JwtProviderTest {
         String accessToken =
                 jwtProvider.createAccessToken(
                         1L,
-                        "USER"
+                        "USER",
+                        "테스터"
                 );
 
         String tamperedToken =
