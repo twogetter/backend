@@ -2,14 +2,19 @@ package com.bubbletea.order.presentation.external;
 
 import com.bubbletea.common.response.ApiResponse;
 import com.bubbletea.order.application.SubscriptionOrderFacade;
+import com.bubbletea.order.application.SubscriptionQueryService;
 import com.bubbletea.order.presentation.external.dto.OrderResponseDto;
 import com.bubbletea.order.presentation.external.dto.SubscriptionCreateRequestDto;
+import com.bubbletea.order.presentation.external.dto.SubscriptionResponseDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -22,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class SubscriptionOrderController {
   private final SubscriptionOrderFacade subscriptionOrderFacade;
+  private final SubscriptionQueryService subscriptionQueryService;
 
   @PostMapping
   public ResponseEntity<ApiResponse<OrderResponseDto>> createSubscription(
@@ -35,5 +41,22 @@ public class SubscriptionOrderController {
     return ResponseEntity
         .status(HttpStatus.ACCEPTED)
         .body(ApiResponse.success(response, "구독 주문이 접수되었습니다. 결제 처리 중입니다."));
+  }
+
+  /** 내 구독 목록 조회. */
+  @GetMapping
+  public ResponseEntity<ApiResponse<List<SubscriptionResponseDto>>> getMySubscriptions(
+      @RequestHeader("X-User-Id") Long memberId) {
+    return ResponseEntity.ok(
+        ApiResponse.success(subscriptionQueryService.getMemberSubscriptions(memberId)));
+  }
+
+  /** 단건 구독 상태 조회(비동기 생성 결과 폴링 겸용). */
+  @GetMapping("/{subscriptionId}")
+  public ResponseEntity<ApiResponse<SubscriptionResponseDto>> getSubscription(
+      @RequestHeader("X-User-Id") Long memberId,
+      @PathVariable Long subscriptionId) {
+    return ResponseEntity.ok(
+        ApiResponse.success(subscriptionQueryService.getSubscription(memberId, subscriptionId)));
   }
 }
