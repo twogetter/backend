@@ -35,8 +35,10 @@ public class MemberController {
     @GetMapping("/{memberId}")
     public MemberInfoResponseDto detail(
             @PathVariable Long memberId,
-            @RequestHeader(USER_ID_HEADER) Long requesterMemberId,
-            @RequestHeader(USER_ROLE_HEADER) String requesterRole
+            @RequestHeader(USER_ID_HEADER)
+            Long requesterMemberId,
+            @RequestHeader(USER_ROLE_HEADER)
+            String requesterRole
     ) {
         memberAccessValidator.validateOwnerOrAdmin(
                 requesterMemberId,
@@ -53,9 +55,12 @@ public class MemberController {
     @PatchMapping("/{memberId}/profile")
     public void edit(
             @PathVariable Long memberId,
-            @RequestHeader(USER_ID_HEADER) Long requesterMemberId,
-            @RequestHeader(USER_ROLE_HEADER) String requesterRole,
-            @Valid @RequestBody MemberProfileUpdateRequestDto request
+            @RequestHeader(USER_ID_HEADER)
+            Long requesterMemberId,
+            @RequestHeader(USER_ROLE_HEADER)
+            String requesterRole,
+            @Valid @RequestBody
+            MemberProfileUpdateRequestDto request
     ) {
         memberAccessValidator.validateOwnerOrAdmin(
                 requesterMemberId,
@@ -72,8 +77,10 @@ public class MemberController {
     @DeleteMapping("/{memberId}")
     public void delete(
             @PathVariable Long memberId,
-            @RequestHeader(USER_ID_HEADER) Long requesterMemberId,
-            @RequestHeader(USER_ROLE_HEADER) String requesterRole
+            @RequestHeader(USER_ID_HEADER)
+            Long requesterMemberId,
+            @RequestHeader(USER_ROLE_HEADER)
+            String requesterRole
     ) {
         memberAccessValidator.validateOwnerOrAdmin(
                 requesterMemberId,

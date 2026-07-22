@@ -37,6 +37,9 @@ public class MemberCommandService {
         return MemberInfoResult.from(savedMember);
     }
 
+    /**
+     * 회원 프로필을 수정한다.
+     */
     @Transactional
     public void update(
             Long memberId,
@@ -47,10 +50,9 @@ public class MemberCommandService {
 
         member.validateActive();
 
-        if (
-                command.nickname() != null
-                        && !command.nickname().isBlank()
-        ) {
+        if (command.nickname() != null
+                && !command.nickname().isBlank()) {
+
             boolean duplicated =
                     memberRepository.existsByNicknameAndIdNot(
                             command.nickname(),
@@ -71,7 +73,7 @@ public class MemberCommandService {
     }
 
     /**
-     * 일반 회원 탈퇴는 데이터를 삭제하지 않고
+     * 일반 회원 탈퇴는 데이터를 실제 삭제하지 않고
      * 회원 상태를 WITHDRAWN으로 변경한다.
      */
     @Transactional
@@ -84,17 +86,16 @@ public class MemberCommandService {
     }
 
     /**
-     * 회원가입 과정에서 Auth 계정 저장이 실패했을 때 호출한다.
+     * Auth 계정 저장 실패 시 user-service에 먼저 생성된
+     * 회원 데이터를 실제 삭제한다.
      *
-     * 회원가입 자체가 완료되지 않은 상태이므로
-     * user-service에 먼저 저장된 회원을 실제 삭제한다.
+     * 이미 삭제된 회원이어도 예외 없이 성공하도록
+     * 멱등하게 처리한다.
      */
     @Transactional
     public void rollbackSignUp(Long memberId) {
-        Member member =
-                getMemberByIdOrThrow(memberId);
-
-        memberRepository.delete(member);
+        memberRepository.findById(memberId)
+                .ifPresent(memberRepository::delete);
     }
 
     private void validateDuplicateEmail(String email) {
@@ -119,8 +120,8 @@ public class MemberCommandService {
             Long memberId
     ) {
         return memberRepository.findById(memberId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
+                .orElseThrow(
+                        () -> new IllegalArgumentException(
                                 "회원을 찾을 수 없습니다. memberId="
                                         + memberId
                         )
