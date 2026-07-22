@@ -4,9 +4,11 @@ import com.bubbletea.product.domain.reservation.ProductChangeReservation;
 import com.bubbletea.product.domain.reservation.ReservationCategory;
 import com.bubbletea.product.domain.reservation.ReservationCommandType;
 import com.bubbletea.product.domain.reservation.ReservationStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+@Schema(description = "상품 예약 상세 조회 응답")
 public record ReservationDetailResponseDto(
     String id,
     String productId,

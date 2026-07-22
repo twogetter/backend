@@ -2,8 +2,10 @@ package com.bubbletea.product.application.product.dto;
 
 import com.bubbletea.product.domain.product.Product;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 
+@Schema(description = "상품 등록 응답")
 public record ProductResponseDto(
     String id,
     String name,
