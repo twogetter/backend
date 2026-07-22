@@ -13,8 +13,10 @@ public class ProductChatEventService {
 
     private final ProductEventPublisher productEventPublisher;
 
-    public void productRegistered(String artistId, LocalDateTime registeredAt) {
-        productEventPublisher.publish(new ProductRegisteredEvent(artistId, registeredAt));
+    public void productRegistered(
+        String idempotencyKey, Long artistId, LocalDateTime registeredAt) {
+        productEventPublisher.publish(idempotencyKey,
+            new ProductRegisteredEvent(artistId, registeredAt));
     }
 
 }

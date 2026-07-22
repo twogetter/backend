@@ -11,6 +11,14 @@ dependencies {
 
     // Kafka
     implementation 'org.springframework.kafka:spring-kafka'
+
+    // Storage
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // feignClient
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    runtimeOnly 'org.postgresql:postgresql'
 }
 
 tasks.register("prepareKotlinBuildScriptModel"){}

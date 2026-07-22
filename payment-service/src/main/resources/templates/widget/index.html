@@ -46,7 +46,12 @@
 
       <script th:inline="javascript">
         {
+          let paymentAmount = 50000;
+          let currency = "KRW";
+
           const amount = { currency: "KRW", value: 50000 };
+          const internalOrderId = [[${orderId}]];
+          const uniqueOrderId = generateRandomString();
 
           // ------  결제위젯 초기화 ------
           // TODO: 구매자의 고유 아이디를 불러와서 customerKey로 설정하세요. 이메일・전화번호와 같이 유추가 가능한 값은 안전하지 않습니다.
@@ -60,22 +65,30 @@
 
           // ------  주문서의 결제 금액 설정 ------
           // @docs https://docs.tosspayments.com/sdk/v2/js#widgetssetamount
-          widgets.setAmount(amount).then(() =>
-            Promise.all([
-              // ------  결제 UI 렌더링 ------
-              // @docs https://docs.tosspayments.com/sdk/v2/js#widgetsrenderpaymentmethods
-              widgets.renderPaymentMethods({ selector: "#payment-method", variantKey: "DEFAULT" }),
-              // ------  이용약관 UI 렌더링 ------
-              // @docs https://docs.tosspayments.com/sdk/v2/js#widgetsrenderagreement
-              widgets.renderAgreement({ selector: "#agreement", variantKey: "AGREEMENT" }),
-            ])
+          // widgets.setAmount(amount).then(() =>
+          //   Promise.all([
+          //     // ------  결제 UI 렌더링 ------
+          //     // @docs https://docs.tosspayments.com/sdk/v2/js#widgetsrenderpaymentmethods
+          //     widgets.renderPaymentMethods({ selector: "#payment-method", variantKey: "DEFAULT" }),
+          //     // ------  이용약관 UI 렌더링 ------
+          //     // @docs https://docs.tosspayments.com/sdk/v2/js#widgetsrenderagreement
+          //     widgets.renderAgreement({ selector: "#agreement", variantKey: "AGREEMENT" }),
+          //   ])
+          // );
+
+          widgets.setAmount({ currency: currency, value: paymentAmount }).then(() =>
+                  Promise.all([
+                    widgets.renderPaymentMethods({ selector: "#payment-method", variantKey: "DEFAULT" }),
+                    widgets.renderAgreement({ selector: "#agreement", variantKey: "AGREEMENT" }),
+                  ])
           );
+
 
           // ------  주문서의 결제 금액이 변경되었을 경우 결제 금액 업데이트 ------
           // @docs https://docs.tosspayments.com/sdk/v2/js#widgetssetamount
           document.getElementById("coupon-box").addEventListener("change", async function () {
             await widgets.setAmount({
-              currency: "KRW",
+              currency: currency,
               value: this.checked ? amount.value - 5000 : amount.value,
             });
           });
@@ -83,6 +96,28 @@
           // ------ '결제하기' 버튼 누르면 결제창 띄우기 ------
           // @docs https://docs.tosspayments.com/sdk/v2/js#widgetsrequestpayment
           document.getElementById("payment-button").addEventListener("click", async function () {
+
+            const response = await fetch("/brandpay/payments/ready2", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-User-Id": [[${userId}]]
+              },
+              body: JSON.stringify({
+                orderId: internalOrderId,
+                tossOrderId: uniqueOrderId,
+                amount: paymentAmount,
+                currency: currency
+              })
+            });
+
+            if (!response.ok) {
+              alert("주문 생성에 실패했습니다.");
+              return;
+            }
+
+            const result = await response.json();
+
             // 결제를 요청하기 전에 orderId, amount를 서버에 저장하세요.
             // 결제 과정에서 악의적으로 결제 금액이 바뀌는 것을 확인하는 용도입니다.
             await widgets.requestPayment({
@@ -99,71 +134,6 @@
         }
       </script>
 
-      <!-- 결제창형 결제 -->
-<!--      <div class="wrapper" style="flex: 1; display: flex">-->
-<!--        <div class="box_section" style="padding: 40px 30px 50px 30px; margin-top: 30px; margin-bottom: 50px; flex: 1; display: flex; flex-direction: column">-->
-<!--          <h2 class="title">결제창형 결제</h2>-->
-<!--          <p style="margin: 8px 0 24px; color: #8b95a1; font-size: 14px">결제하기 버튼을 눌러 결제창 열기(checkout-window.html)</p>-->
-<!--          &lt;!&ndash; 주문서형과 높이를 맞추기 위한 플레이스홀더 &ndash;&gt;-->
-<!--          <div style="flex: 1; border: 2px dashed #d1d5db; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; gap: 8px; color: #8b95a1;">-->
-<!--            <span style="font-size: 14px; font-weight: 600;">결제수단 선택 UI 없음</span>-->
-<!--            <span style="font-size: 13px; text-align: center;">버튼 누르면 결제수단을 선택할 수 있는 결제창이 열립니다.</span>-->
-<!--          </div>-->
-<!--          &lt;!&ndash; 결제하기 버튼 &ndash;&gt;-->
-<!--          <button class="button" id="payment-window-button" style="margin-top: 30px">결제하기</button>-->
-<!--        </div>-->
-<!--      </div>-->
-
-<!--      <script>-->
-<!--        {-->
-<!--          // &#45;&#45;&#45;&#45;&#45;&#45;  결제위젯 초기화 &#45;&#45;&#45;&#45;&#45;&#45;-->
-<!--          // TODO: 구매자의 고유 아이디를 불러와서 customerKey로 설정하세요. 이메일・전화번호와 같이 유추가 가능한 값은 안전하지 않습니다.-->
-<!--          // @docs https://docs.tosspayments.com/sdk/v2/js#토스페이먼츠-초기화-->
-<!--          const widgetWindow = TossPayments(clientKey).widgets({ customerKey: generateRandomString() });-->
-<!--          // 비회원 결제-->
-<!--          // const widgetWindow = TossPayments(clientKey).widgets({ customerKey: TossPayments.ANONYMOUS });-->
-
-<!--          // &#45;&#45;&#45;&#45;&#45;&#45; '결제하기' 버튼 누르면 결제창 띄우기 &#45;&#45;&#45;&#45;&#45;&#45;-->
-<!--          document.getElementById("payment-window-button").addEventListener("click", async () => {-->
-<!--            // &#45;&#45;&#45;&#45;&#45;&#45;  주문서의 결제 금액 설정 &#45;&#45;&#45;&#45;&#45;&#45;-->
-<!--            // @docs https://docs.tosspayments.com/sdk/v2/js#widgetssetamount-->
-<!--            await widgetWindow.setAmount({ currency: "KRW", value: 50000 });-->
-
-<!--            // &#45;&#45;&#45;&#45;&#45;&#45;  결제창 렌더링 &#45;&#45;&#45;&#45;&#45;&#45;-->
-<!--            // @docs https://docs.tosspayments.com/sdk/v2/js#widgetsrenderpaymentwindow-->
-<!--            const widgetPaymentWindow = await widgetWindow.renderPaymentWindow({-->
-<!--              variantKey: {-->
-<!--                paymentMethod: "DEFAULT",-->
-<!--                agreement: "AGREEMENT",-->
-<!--              },-->
-<!--            });-->
-
-<!--            // 구매자가 결제창에서 결제 요청 버튼을 누르면 발생하는 이벤트-->
-<!--            widgetPaymentWindow.on("paymentRequest", async () => {-->
-<!--              try {-->
-<!--                // 결제를 요청하기 전에 orderId, amount를 서버에 저장하세요.-->
-<!--                // 결제 과정에서 악의적으로 결제 금액이 바뀌는 것을 확인하는 용도입니다.-->
-<!--                await widgetWindow.requestPayment({-->
-<!--                  orderId: generateRandomString(),-->
-<!--                  orderName: "토스 티셔츠 외 2건",-->
-<!--                  successUrl: window.location.origin + "/widget/success.html",-->
-<!--                  failUrl: window.location.origin + "/fail.html",-->
-<!--                  customerEmail: "customer123@gmail.com",-->
-<!--                  customerName: "김토스",-->
-<!--                  // 가상계좌 안내, 퀵계좌이체 휴대폰 번호 자동 완성에 사용되는 값입니다. 필요하다면 주석을 해제해 주세요.-->
-<!--                  customerMobilePhone: "01012341234",-->
-<!--                });-->
-<!--              } catch (error) {-->
-<!--                console.error(error);-->
-<!--              }-->
-
-<!--              // 가맹점이 원하는 시점에 결제창을 제거하세요 (결제 완료 후, 일정 시간 후 등).-->
-<!--              await widgetPaymentWindow.destroy();-->
-<!--            });-->
-<!--          });-->
-<!--        }-->
-<!--      </script>-->
-
     </div>
 
     <!-- 다른 연동 방식으로 이동하기 -->
@@ -176,12 +146,12 @@
       </div>
     </div>
     <script>
-      document.getElementById("nav-payment-window-button").addEventListener("click", () => {
-        location.href = "/payment/checkout.html?userId=[[${userId}]]";
-      });
+      // document.getElementById("nav-payment-window-button").addEventListener("click", () => {
+      //   location.href = `/payment/checkout.html?userId=[[${userId}]]&orderId=[[${orderId}]]`;
+      // });
 
       document.getElementById("brandpay-button").addEventListener("click", () => {
-        location.href = "/brandpay/checkout.html?userId=[[${userId}]]";
+        location.href = `/brandpay/checkout.html?userId=[[${userId}]]&orderId=[[${orderId}]]`;
       });
     </script>
   </body>

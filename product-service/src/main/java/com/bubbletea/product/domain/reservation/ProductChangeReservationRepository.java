@@ -4,17 +4,25 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ProductChangeReservationRepository {
+
+    Optional<ProductChangeReservation> findById(String reservationId);
+
+    Page<ProductChangeReservation> findAll(ReservationSearchCondition condition, Pageable pageable);
+
+    boolean existsByProductIdAndReservationStatus(String productId, ReservationStatus status);
 
     void saveAll(List<ProductChangeReservation> reservations);
 
     Optional<ProductChangeReservation> claimNextPending(
         LocalDateTime now, Collection<ReservationCommandType> commandTypes);
 
-    void markExecuted(String reservationId);
+    void markExecuted(String reservationId, LocalDateTime claimedAt);
 
-    void markFailed(String reservationId, String failReason);
+    boolean markFailed(String reservationId, String failReason, LocalDateTime claimedAt);
 
     int recoverStalledProcessing(LocalDateTime staleBefore);
 

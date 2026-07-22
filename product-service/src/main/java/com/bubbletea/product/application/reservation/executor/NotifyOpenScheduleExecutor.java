@@ -30,7 +30,8 @@ public class NotifyOpenScheduleExecutor implements ReservationCommandExecutor {
         LocalDateTime openDate = LocalDateTime.parse(
             (String) reservation.getPayload().get(OPEN_DATE));
 
-        productScheduleNotificationService.notifyOpenSchedule(productName, openDate);
+        productScheduleNotificationService.notifyOpenSchedule(
+            reservation.getId(), productName, openDate);
 
         productChangeHistoryRepository.save(
             ProductChangeHistory.recordSuccess(reservation, reservation.getPayload()));

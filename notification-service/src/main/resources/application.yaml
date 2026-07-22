@@ -1,8 +1,12 @@
 spring:
+  profiles:
+    default: dev
   application:
     name: notification-service
   config:
     import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
 eureka:
   client:

@@ -1,9 +1,18 @@
 package com.bubbletea.product.infrastructure.mongo.product;
 
 import com.bubbletea.product.domain.product.Product;
+import com.bubbletea.product.domain.product.ProductListCondition;
 import com.bubbletea.product.domain.product.ProductRepository;
+import com.bubbletea.product.domain.product.ProductSearchCondition;
+import com.bubbletea.product.domain.product.ProductStatus;
+import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -11,6 +20,7 @@ import org.springframework.stereotype.Component;
 class ProductRepositoryImpl implements ProductRepository {
 
     private final ProductMongoRepository productMongoRepository;
+    private final MongoTemplate mongoTemplate;
 
     @Override
     public Product save(Product product) {
@@ -23,7 +33,105 @@ class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
-    public boolean existsByArtistIdAndDeletedFalse(String artistId) {
+    public Optional<Product> findByPid(Long pid) {
+        return productMongoRepository.findByPid(pid);
+    }
+
+    @Override
+    public boolean existsByArtistIdAndDeletedFalse(Long artistId) {
         return productMongoRepository.existsByArtistIdAndDeletedFalse(artistId);
     }
+
+    @Override
+    public Optional<Product> findActiveProductById(String productId) {
+        Criteria criteria = Criteria.where("_id").is(productId)
+            .and("status").is(ProductStatus.ACTIVE)
+            .and("deleted").is(false);
+        return Optional.ofNullable(mongoTemplate.findOne(Query.query(criteria), Product.class));
+    }
+
+    @Override
+    public List<Product> findActiveProducts(ProductListCondition condition) {
+        Criteria criteria = Criteria.where("status").is(ProductStatus.ACTIVE)
+            .and("deleted").is(false);
+
+        List<Criteria> andConditions = new java.util.ArrayList<>();
+        andConditions.add(criteria);
+
+        if (condition.hasGroupNameFilter()) {
+            Criteria groupOrArtist = new Criteria().orOperator(
+                Criteria.where("groupName").is(condition.groupNameFilter()),
+                new Criteria().andOperator(
+                    Criteria.where("groupName").isNull(),
+                    Criteria.where("artistName").is(condition.groupNameFilter())
+                )
+            );
+            andConditions.add(groupOrArtist);
+        }
+
+        if (condition.hasCursor()) {
+            Criteria cursorCriteria = new Criteria().orOperator(
+                Criteria.where("artistName").gt(condition.cursorArtistName()),
+                new Criteria().andOperator(
+                    Criteria.where("artistName").is(condition.cursorArtistName()),
+                    Criteria.where("_id").gt(condition.cursorId())
+                )
+            );
+            andConditions.add(cursorCriteria);
+        }
+
+        Criteria finalCriteria = new Criteria()
+            .andOperator(andConditions.toArray(new Criteria[0]));
+
+        Query query = Query.query(finalCriteria)
+            .with(Sort.by(Sort.Order.asc("artistName"), Sort.Order.asc("_id")))
+            .limit(condition.size() + 1);
+
+        return mongoTemplate.find(query, Product.class);
+    }
+
+    @Override
+    public List<String> findDistinctActiveGroupNames() {
+        Criteria criteria = Criteria.where("status").is(ProductStatus.ACTIVE)
+            .and("deleted").is(false)
+            .and("groupName").ne(null);
+        Query query = Query.query(criteria);
+        return mongoTemplate.findDistinct(query, "groupName", Product.class, String.class);
+    }
+
+    @Override
+    public List<Product> searchActiveProducts(ProductSearchCondition condition) {
+        String escapedKeyword = Pattern.quote(condition.keyword());
+
+        Criteria keywordCriteria = new Criteria().orOperator(
+            Criteria.where("artistName").regex(escapedKeyword, "i"),
+            Criteria.where("groupName").regex(escapedKeyword, "i"),
+            Criteria.where("description").regex(escapedKeyword, "i")
+        );
+
+        List<Criteria> andConditions = new java.util.ArrayList<>();
+        andConditions.add(Criteria.where("status").is(ProductStatus.ACTIVE));
+        andConditions.add(Criteria.where("deleted").is(false));
+        andConditions.add(keywordCriteria);
+
+        if (condition.hasCursor()) {
+            Criteria cursorCriteria = new Criteria().orOperator(
+                Criteria.where("artistName").gt(condition.cursorArtistName()),
+                new Criteria().andOperator(
+                    Criteria.where("artistName").is(condition.cursorArtistName()),
+                    Criteria.where("_id").gt(condition.cursorId())
+                )
+            );
+            andConditions.add(cursorCriteria);
+        }
+
+        Criteria finalCriteria = new Criteria().andOperator(andConditions.toArray(new Criteria[0]));
+
+        Query query = Query.query(finalCriteria)
+            .with(Sort.by(Sort.Order.asc("artistName"), Sort.Order.asc("_id")))
+            .limit(condition.size() + 1);
+
+        return mongoTemplate.find(query, Product.class);
+    }
+
 }

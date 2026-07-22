@@ -42,14 +42,15 @@ public class ProductRegistrationService {
 
         createOpenSchedule(savedProduct);
 
+        String registeredIdempotencyKey = savedProduct.getId() + ":ARTIST_REGISTERED";
         productChatEventService.productRegistered(
-            savedProduct.getArtistId(), savedProduct.getCreatedAt()
+            registeredIdempotencyKey, savedProduct.getArtistId(), savedProduct.getCreatedAt()
         );
 
         return ProductResponseDto.from(savedProduct);
     }
 
-    private void validateDuplicateArtist(String artistId) {
+    private void validateDuplicateArtist(Long artistId) {
         if (productRepository.existsByArtistIdAndDeletedFalse(artistId)) {
             throw new AppException(ProductErrorCode.DUPLICATE_ARTIST_PRODUCT);
         }

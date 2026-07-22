@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 
 
 @Configuration
@@ -20,23 +19,21 @@ public class KafkaProducerConfig {
     private String bootstrapServers;
 
     @Bean
-    public ProducerFactory<String, Object> productEventProducerFactory() {
+    public ProducerFactory<String, String> outboxKafkaProducerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.ACKS_CONFIG, "all");
         configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
-        configProps.put(JacksonJsonSerializer.ADD_TYPE_INFO_HEADERS, false);
-
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
     @Bean
-    public KafkaTemplate<String, Object> productEventKafkaTemplate(
-            ProducerFactory<String, Object> productEventProducerFactory
+    public KafkaTemplate<String, String> outboxKafkaTemplate(
+        ProducerFactory<String, String> outboxKafkaProducerFactory
     ) {
-        return new KafkaTemplate<>(productEventProducerFactory);
+        return new KafkaTemplate<>(outboxKafkaProducerFactory);
     }
 
 }

@@ -31,7 +31,7 @@ public class NotifyDeactivationScheduleExecutor implements ReservationCommandExe
             (String) reservation.getPayload().get(DEACTIVATION_DATE));
 
         productScheduleNotificationService.notifyDeactivationSchedule(
-            productName, deactivationDate
+            reservation.getId(), productName, deactivationDate
         );
 
         productChangeHistoryRepository.save(

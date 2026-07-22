@@ -31,7 +31,8 @@ public class NotifyDeletionScheduleExecutor implements ReservationCommandExecuto
         LocalDateTime deletionDate = LocalDateTime.parse(
             (String) reservation.getPayload().get(DELETION_DATE));
 
-        productScheduleNotificationService.notifyDeletionSchedule(productName, deletionDate);
+        productScheduleNotificationService.notifyDeletionSchedule(
+            reservation.getId(), productName, deletionDate);
 
         productChangeHistoryRepository.save(
             ProductChangeHistory.recordSuccess(reservation, reservation.getPayload()));

@@ -4,7 +4,7 @@ package com.bubbletea.product.domain.product;
 import com.bubbletea.common.exception.AppException;
 import com.bubbletea.product.domain.common.BaseTimeEntity;
 import com.bubbletea.product.domain.exception.ProductErrorCode;
-import com.bubbletea.product.domain.product.policy.ProductOpenSchedulePolicy;
+import com.bubbletea.product.domain.product.policy.ProductSchedulePolicy;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -19,15 +19,28 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Document(collection = "products")
 @CompoundIndexes({
-    @CompoundIndex(name = "idx_status_openDate", def = "{'status': 1, 'openDate': 1}")
+    @CompoundIndex(
+        name = "idx_status_openDate",
+        def = "{'status': 1, 'openDate': 1}"
+    ),
+    @CompoundIndex(
+        name = "idx_product_list",
+        def = "{'status': 1, 'deleted': 1, 'artistName': 1, '_id': 1}"
+    ),
+    @CompoundIndex(
+        name = "idx_product_list_by_group",
+        def = "{'status': 1, 'deleted': 1, 'groupName': 1, 'artistName': 1, '_id': 1}"
+    )
 })
 public class Product extends BaseTimeEntity {
 
     @Id
     private String id;
 
+    private Long pid;
+
     @Indexed(unique = true, partialFilter = "{ 'deleted': false }")
-    private String artistId;
+    private Long artistId;
 
     private String artistName;
 
@@ -54,9 +67,10 @@ public class Product extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     private Product(
-        String artistId, String artistName, String groupName,
+        Long artistId, String artistName, String groupName,
         String description, String imageUrl, long price, LocalDateTime openDate
     ) {
+        this.pid = artistId;
         this.artistId = artistId;
         this.artistName = artistName;
         this.groupName = groupName;
@@ -71,12 +85,17 @@ public class Product extends BaseTimeEntity {
     }
 
     public static Product schedule(
-        String artistId, String artistName, String groupName,
+        Long artistId, String artistName, String groupName,
         String description, String imageUrl, long price, LocalDateTime openDate
     ) {
-        ProductOpenSchedulePolicy.validate(openDate, LocalDateTime.now());
+        ProductSchedulePolicy.validate(openDate, LocalDateTime.now());
         return new Product(
             artistId, artistName, groupName, description, imageUrl, price, openDate);
+    }
+
+    public void verifySchedulability(LocalDateTime runDate) {
+        assertNotDeleted();
+        ProductSchedulePolicy.validate(runDate, LocalDateTime.now());
     }
 
     public void activate() {
