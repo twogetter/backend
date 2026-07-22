@@ -31,6 +31,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.bubbletea.chat.infrastructure.security.JwtProvider;
+
 @ExtendWith(MockitoExtension.class)
 class ChatMessageControllerTest {
 
@@ -38,6 +40,8 @@ class ChatMessageControllerTest {
   private MockMvc mockMvc;
   @Mock
   private ChatMessageService chatMessageService;
+  @Mock
+  private JwtProvider jwtProvider;
 
   @BeforeEach
   void setUp() {
@@ -45,7 +49,7 @@ class ChatMessageControllerTest {
     mockMvc = MockMvcBuilders
         .standaloneSetup(chatMessageController)
         .setControllerAdvice(new GlobalExceptionHandler())
-        .addInterceptors(new SecurityContextInterceptor())
+        .addInterceptors(new SecurityContextInterceptor(jwtProvider))
         .build();
   }
 

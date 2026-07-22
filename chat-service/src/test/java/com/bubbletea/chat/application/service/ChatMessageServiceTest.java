@@ -3,6 +3,7 @@ package com.bubbletea.chat.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -27,6 +28,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.bubbletea.chat.domain.entity.ChatParticipant;
+import com.bubbletea.chat.domain.enums.ParticipantStatus;
+import com.bubbletea.chat.domain.event.ChatPublishedEvent;
+import com.bubbletea.chat.domain.repository.ChatParticipantRepository;
+import com.bubbletea.chat.infrastructure.kafka.producer.ChatEventPublisher;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -42,10 +49,19 @@ class ChatMessageServiceTest {
   private ChatRoomRepository chatRoomRepository;
 
   @Mock
+  private ChatParticipantRepository chatParticipantRepository;
+
+  @Mock
   private ActiveParticipantValidator activeParticipantValidator;
 
   @Mock
   private FanMessageValidator fanMessageValidator;
+
+  @Mock
+  private SimpMessagingTemplate messagingTemplate;
+
+  @Mock
+  private ChatEventPublisher chatEventPublisher;
 
   @InjectMocks
   private ChatMessageService chatMessageService;
@@ -91,6 +107,7 @@ class ChatMessageServiceTest {
       verify(activeParticipantValidator, times(1)).validate(roomId, senderId, ParticipantRole.FAN);
       verify(fanMessageValidator, times(1)).validate(roomId, senderId, ParticipantRole.FAN);
       verify(chatMessageRepository, times(1)).save(any(ChatMessage.class));
+      verify(messagingTemplate, times(1)).convertAndSend(eq("/sub/rooms/1/fan"), any(ChatMessageResponseDto.class));
     }
 
     @Test
@@ -111,11 +128,16 @@ class ChatMessageServiceTest {
           .messageType(MessageType.TEXT)
           .build();
       org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "id", 101L);
+      org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "createdAt", java.time.LocalDateTime.now());
 
       when(chatRoomRepository.findById(roomId)).thenReturn(Optional.of(mockRoom));
       doNothing().when(activeParticipantValidator)
           .validate(roomId, senderId, ParticipantRole.ARTIST);
       when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(mockMessage);
+
+      ChatParticipant mockFanParticipant = ChatParticipant.createFanParticipant(roomId, 20L);
+      when(chatParticipantRepository.findAllByRoomIdAndStatus(roomId, ParticipantStatus.ACTIVE))
+          .thenReturn(List.of(mockFanParticipant));
 
       // when
       ChatMessageResponseDto response = chatMessageService.save(roomId, senderId,
@@ -130,6 +152,8 @@ class ChatMessageServiceTest {
           ParticipantRole.ARTIST);
       verify(fanMessageValidator, times(0)).validate(any(), any(), any());
       verify(chatMessageRepository, times(1)).save(any(ChatMessage.class));
+      verify(messagingTemplate, times(1)).convertAndSend(eq("/sub/rooms/1/artist"), any(ChatMessageResponseDto.class));
+      verify(chatEventPublisher, times(1)).publish(any(ChatPublishedEvent.class));
     }
 
     @Test
