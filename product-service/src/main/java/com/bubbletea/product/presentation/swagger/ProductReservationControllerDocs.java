@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -44,7 +45,7 @@ public interface ProductReservationControllerDocs {
         )
         @RequestParam(required = false) ReservationStatus status,
 
-        @Parameter(hidden = true) Pageable pageable
+        @ParameterObject Pageable pageable
     );
 
     @Operation(
