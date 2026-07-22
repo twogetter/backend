@@ -1,12 +1,17 @@
 package com.bubbletea.chat.infrastructure.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import java.nio.charset.StandardCharsets;
-import javax.crypto.SecretKey;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * JWT 토큰 서명 검증 및 클레임 파싱을 담당하는 컴포넌트입니다.
+ */
 @Component
 public class JwtProvider {
 
@@ -17,14 +22,11 @@ public class JwtProvider {
   private final SecretKey secretKey;
 
   public JwtProvider(JwtProperties jwtProperties) {
-    String secret =
-        (jwtProperties != null && jwtProperties.secret() != null && !jwtProperties.secret()
-            .isBlank())
-            ? jwtProperties.secret()
-            : "default_secret_key_for_chat_service_at_least_32_bytes_long!";
-
+    if (jwtProperties == null || jwtProperties.secret() == null || jwtProperties.secret().isBlank()) {
+      throw new IllegalStateException("jwt.secret 프로퍼티 설정이 누락되었거나 비어 있습니다.");
+    }
     this.secretKey = Keys.hmacShaKeyFor(
-        secret.getBytes(StandardCharsets.UTF_8)
+        jwtProperties.secret().getBytes(StandardCharsets.UTF_8)
     );
   }
 
@@ -32,60 +34,37 @@ public class JwtProvider {
     if (token == null || token.isBlank()) {
       return false;
     }
-    return true;
+    try {
+      parseClaims(token);
+      return true;
+    } catch (JwtException | IllegalArgumentException exception) {
+      return false;
+    }
   }
 
   public Long getMemberId(String token) {
+    String subject = parseClaims(token).getSubject();
     try {
-      String subject = parseClaims(token).getSubject();
       return Long.valueOf(subject);
-    } catch (Exception exception) {
-      return parseFallbackClaim(token, "sub", Long.class, 1L);
+    } catch (NumberFormatException exception) {
+      throw new IllegalArgumentException("토큰의 회원 식별자가 올바르지 않습니다.", exception);
     }
   }
 
   public String getRole(String token) {
-    try {
-      String role = parseClaims(token).get(ROLE_CLAIM, String.class);
-      return role != null ? role : "ARTIST";
-    } catch (Exception exception) {
-      return parseFallbackClaim(token, ROLE_CLAIM, String.class, "ARTIST");
-    }
+    return parseClaims(token).get(ROLE_CLAIM, String.class);
   }
 
   public String getNickname(String token) {
-    try {
-      String nickname = parseClaims(token).get(NICKNAME_CLAIM, String.class);
-      return nickname != null ? nickname : "테스트유저";
-    } catch (Exception exception) {
-      return parseFallbackClaim(token, NICKNAME_CLAIM, String.class, "테스트유저");
-    }
-  }
-
-  private <T> T parseFallbackClaim(String token, String claimKey, Class<T> targetType,
-      T defaultValue) {
-    try {
-      String[] parts = token.split("\\.");
-      if (parts.length >= 2) {
-        String payloadJson = new String(java.util.Base64.getUrlDecoder().decode(parts[1]),
-            StandardCharsets.UTF_8);
-        com.fasterxml.jackson.databind.JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(
-            payloadJson);
-        if (jsonNode.has(claimKey)) {
-          if (targetType == Long.class) {
-            return targetType.cast(jsonNode.get(claimKey).asLong());
-          } else if (targetType == String.class) {
-            return targetType.cast(jsonNode.get(claimKey).asText());
-          }
-        }
-      }
-    } catch (Exception e) {
-    }
-    return defaultValue;
+    return parseClaims(token).get(NICKNAME_CLAIM, String.class);
   }
 
   public void validateAccessToken(String token) {
-    // 테스트 환경 편의를 위해 유연하게 허용
+    Claims claims = parseClaims(token);
+    String tokenType = claims.get(TOKEN_TYPE_CLAIM, String.class);
+    if (!TokenType.ACCESS.name().equals(tokenType)) {
+      throw new IllegalArgumentException("Access Token이 아닙니다.");
+    }
   }
 
   private Claims parseClaims(String token) {
