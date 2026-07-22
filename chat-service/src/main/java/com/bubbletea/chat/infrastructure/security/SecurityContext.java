@@ -4,6 +4,8 @@ import com.bubbletea.chat.domain.enums.ParticipantRole;
 
 public record SecurityContext(
     Long userId,
-    ParticipantRole role
+    ParticipantRole role,
+    String nickname
 ) {
+
 }
