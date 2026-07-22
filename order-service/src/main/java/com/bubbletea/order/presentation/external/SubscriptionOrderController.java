@@ -23,9 +23,11 @@ public class SubscriptionOrderController {
   @PostMapping
   public ResponseEntity<ApiResponse<OrderResponseDto>> createSubscription(
       @RequestHeader("X-User-Id") Long memberId,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
       @Valid @RequestBody SubscriptionCreateRequestDto request) {
 
-    OrderResponseDto response = subscriptionOrderFacade.createSubscription(memberId, request);
+    OrderResponseDto response =
+        subscriptionOrderFacade.createSubscription(memberId, idempotencyKey, request);
     // 비동기 처리: 주문을 접수(PENDING)하고 결과는 이후 결제 결과 이벤트로 확정된다.
     return ResponseEntity
         .status(HttpStatus.ACCEPTED)
