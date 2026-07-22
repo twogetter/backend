@@ -52,6 +52,6 @@ class OrderExpiredEventConsumerTest {
 
     // then
     verify(chatRoomService, times(1)).getChatRoomByArtistId(artistId);
-    verify(chatParticipantService, times(1)).delete(100L, fanId);
+    verify(chatParticipantService, times(1)).delete(100L, fanId, endedAt);
   }
 }
