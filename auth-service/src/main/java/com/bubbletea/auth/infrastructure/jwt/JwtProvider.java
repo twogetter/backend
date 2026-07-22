@@ -1,6 +1,7 @@
 package com.bubbletea.auth.infrastructure.jwt;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -16,6 +17,7 @@ import java.util.Date;
 public class JwtProvider {
 
     private static final String ROLE_CLAIM = "role";
+    private static final String NICKNAME_CLAIM = "nickname";
     private static final String TOKEN_TYPE_CLAIM = "tokenType";
 
     private final JwtProperties jwtProperties;
@@ -29,18 +31,28 @@ public class JwtProvider {
         );
     }
 
+    /**
+     * Access Token에는 회원 ID, 역할, 닉네임을 포함한다.
+     */
     public String createAccessToken(
             Long memberId,
-            String role
+            String role,
+            String nickname
     ) {
+        validateNickname(nickname);
+
         return createToken(
                 memberId,
                 role,
+                nickname,
                 TokenType.ACCESS,
                 jwtProperties.accessTokenExpiration()
         );
     }
 
+    /**
+     * Refresh Token에는 변경 가능한 닉네임을 포함하지 않는다.
+     */
     public String createRefreshToken(
             Long memberId,
             String role
@@ -48,6 +60,7 @@ public class JwtProvider {
         return createToken(
                 memberId,
                 role,
+                null,
                 TokenType.REFRESH,
                 jwtProperties.refreshTokenExpiration()
         );
@@ -56,19 +69,34 @@ public class JwtProvider {
     private String createToken(
             Long memberId,
             String role,
+            String nickname,
             TokenType tokenType,
             long expirationMillis
     ) {
         Instant now = Instant.now();
+
         Instant expiration =
                 now.plusMillis(expirationMillis);
 
-        return Jwts.builder()
-                .subject(String.valueOf(memberId))
-                .claim(ROLE_CLAIM, role)
-                .claim(TOKEN_TYPE_CLAIM, tokenType.name())
-                .issuedAt(Date.from(now))
-                .expiration(Date.from(expiration))
+        JwtBuilder jwtBuilder =
+                Jwts.builder()
+                        .subject(String.valueOf(memberId))
+                        .claim(ROLE_CLAIM, role)
+                        .claim(
+                                TOKEN_TYPE_CLAIM,
+                                tokenType.name()
+                        )
+                        .issuedAt(Date.from(now))
+                        .expiration(Date.from(expiration));
+
+        if (TokenType.ACCESS == tokenType) {
+            jwtBuilder.claim(
+                    NICKNAME_CLAIM,
+                    nickname
+            );
+        }
+
+        return jwtBuilder
                 .signWith(secretKey)
                 .compact();
     }
@@ -77,16 +105,22 @@ public class JwtProvider {
         try {
             parseClaims(token);
             return true;
-        } catch (JwtException | IllegalArgumentException exception) {
+
+        } catch (
+                JwtException |
+                IllegalArgumentException exception
+        ) {
             return false;
         }
     }
 
     public Long getMemberId(String token) {
-        String subject = parseClaims(token).getSubject();
+        String subject =
+                parseClaims(token).getSubject();
 
         try {
             return Long.valueOf(subject);
+
         } catch (NumberFormatException exception) {
             throw new IllegalArgumentException(
                     "토큰의 회원 식별자가 올바르지 않습니다.",
@@ -102,14 +136,23 @@ public class JwtProvider {
         );
     }
 
-    public TokenType getTokenType(String token) {
-        String tokenType = parseClaims(token).get(
-                TOKEN_TYPE_CLAIM,
+    public String getNickname(String token) {
+        return parseClaims(token).get(
+                NICKNAME_CLAIM,
                 String.class
         );
+    }
+
+    public TokenType getTokenType(String token) {
+        String tokenType =
+                parseClaims(token).get(
+                        TOKEN_TYPE_CLAIM,
+                        String.class
+                );
 
         try {
             return TokenType.valueOf(tokenType);
+
         } catch (
                 IllegalArgumentException |
                 NullPointerException exception
@@ -124,10 +167,11 @@ public class JwtProvider {
     public void validateRefreshToken(String token) {
         Claims claims = parseClaims(token);
 
-        String tokenType = claims.get(
-                TOKEN_TYPE_CLAIM,
-                String.class
-        );
+        String tokenType =
+                claims.get(
+                        TOKEN_TYPE_CLAIM,
+                        String.class
+                );
 
         if (!TokenType.REFRESH.name().equals(tokenType)) {
             throw new IllegalArgumentException(
@@ -169,6 +213,14 @@ public class JwtProvider {
         return Duration.ofMillis(
                 jwtProperties.refreshTokenExpiration()
         );
+    }
+
+    private void validateNickname(String nickname) {
+        if (nickname == null || nickname.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Access Token에 포함할 닉네임이 필요합니다."
+            );
+        }
     }
 
     private Claims parseClaims(String token) {

@@ -65,11 +65,12 @@ class AuthCommandServiceTest {
         String nickname = "테스터";
         String encodedPassword = "encoded-password";
 
-        SignUpCommand command = new SignUpCommand(
-                email,
-                password,
-                nickname
-        );
+        SignUpCommand command =
+                new SignUpCommand(
+                        email,
+                        password,
+                        nickname
+                );
 
         CreateMemberInternalResponse memberResponse =
                 new CreateMemberInternalResponse(
@@ -92,7 +93,9 @@ class AuthCommandServiceTest {
 
         when(authAccountRepository.save(
                 any(AuthAccount.class)
-        )).thenAnswer(invocation -> invocation.getArgument(0));
+        )).thenAnswer(
+                invocation -> invocation.getArgument(0)
+        );
 
         // when
         SignUpResult result =
@@ -159,11 +162,12 @@ class AuthCommandServiceTest {
         // given
         String email = "duplicate@example.com";
 
-        SignUpCommand command = new SignUpCommand(
-                email,
-                "Password123!",
-                "중복테스터"
-        );
+        SignUpCommand command =
+                new SignUpCommand(
+                        email,
+                        "Password123!",
+                        "중복테스터"
+                );
 
         when(authAccountRepository.existsByEmail(email))
                 .thenReturn(true);
@@ -245,23 +249,26 @@ class AuthCommandServiceTest {
     }
 
     @Test
-    @DisplayName("로그인 성공 시 Access Token과 Refresh Token을 발급한다")
+    @DisplayName("로그인 성공 시 닉네임이 포함된 Access Token과 Refresh Token을 발급한다")
     void loginSuccess() {
         // given
         String email = "test@example.com";
         String rawPassword = "Password123!";
         String encodedPassword = "encoded-password";
+        String nickname = "테스터";
 
-        AuthAccount authAccount = AuthAccount.create(
-                1L,
-                email,
-                encodedPassword
-        );
+        AuthAccount authAccount =
+                AuthAccount.create(
+                        1L,
+                        email,
+                        encodedPassword
+                );
 
         MemberAuthInfoResponse memberInfo =
                 new MemberAuthInfoResponse(
                         1L,
                         email,
+                        nickname,
                         "USER",
                         "ACTIVE",
                         true
@@ -280,7 +287,8 @@ class AuthCommandServiceTest {
 
         when(jwtProvider.createAccessToken(
                 1L,
-                "USER"
+                "USER",
+                nickname
         )).thenReturn("access-token");
 
         when(jwtProvider.createRefreshToken(
@@ -334,7 +342,8 @@ class AuthCommandServiceTest {
         verify(jwtProvider)
                 .createAccessToken(
                         1L,
-                        "USER"
+                        "USER",
+                        nickname
                 );
 
         verify(jwtProvider)
@@ -359,11 +368,12 @@ class AuthCommandServiceTest {
         String rawPassword = "WrongPassword!";
         String encodedPassword = "encoded-password";
 
-        AuthAccount authAccount = AuthAccount.create(
-                1L,
-                email,
-                encodedPassword
-        );
+        AuthAccount authAccount =
+                AuthAccount.create(
+                        1L,
+                        email,
+                        encodedPassword
+                );
 
         when(authAccountRepository.findByEmail(email))
                 .thenReturn(Optional.of(authAccount));
@@ -411,16 +421,18 @@ class AuthCommandServiceTest {
         String rawPassword = "Password123!";
         String encodedPassword = "encoded-password";
 
-        AuthAccount authAccount = AuthAccount.create(
-                2L,
-                email,
-                encodedPassword
-        );
+        AuthAccount authAccount =
+                AuthAccount.create(
+                        2L,
+                        email,
+                        encodedPassword
+                );
 
         MemberAuthInfoResponse memberInfo =
                 new MemberAuthInfoResponse(
                         2L,
                         email,
+                        "정지회원",
                         "USER",
                         "SUSPENDED",
                         false
@@ -468,15 +480,17 @@ class AuthCommandServiceTest {
     }
 
     @Test
-    @DisplayName("유효한 Refresh Token이면 Access Token과 Refresh Token을 재발급한다")
+    @DisplayName("유효한 Refresh Token이면 최신 닉네임으로 토큰을 재발급한다")
     void refreshSuccess() {
         // given
         String oldRefreshToken = "old-refresh-token";
+        String nickname = "테스터";
 
         MemberAuthInfoResponse memberInfo =
                 new MemberAuthInfoResponse(
                         1L,
                         "test@example.com",
+                        nickname,
                         "USER",
                         "ACTIVE",
                         true
@@ -493,7 +507,8 @@ class AuthCommandServiceTest {
 
         when(jwtProvider.createAccessToken(
                 1L,
-                "USER"
+                "USER",
+                nickname
         )).thenReturn("new-access-token");
 
         when(jwtProvider.createRefreshToken(
@@ -542,6 +557,19 @@ class AuthCommandServiceTest {
 
         verify(userServiceClient)
                 .getMemberAuthInfo(1L);
+
+        verify(jwtProvider)
+                .createAccessToken(
+                        1L,
+                        "USER",
+                        nickname
+                );
+
+        verify(jwtProvider)
+                .createRefreshToken(
+                        1L,
+                        "USER"
+                );
 
         verify(refreshTokenStore)
                 .save(

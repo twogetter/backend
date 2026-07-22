@@ -19,6 +19,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 @Component
 public class JwtAuthenticationFilter
@@ -53,19 +54,12 @@ public class JwtAuthenticationFilter
             GatewayFilterChain chain
     ) {
         /*
-         * 클라이언트가 임의로 보낸 내부 인증 헤더를 제거합니다.
-         *
-         * 예:
-         * X-User-Id: 999
-         * X-User-Role: ADMIN
+         * 클라이언트가 임의로 보낸 내부 인증 헤더를
+         * 공개 API와 보호 API 모두에서 제거한다.
          */
         ServerWebExchange sanitizedExchange =
                 removeClientAuthenticationHeaders(exchange);
 
-        /*
-         * 로그인, 회원가입, 토큰 재발급 등의 공개 API는
-         * Access Token 검증 없이 통과합니다.
-         */
         if (publicPathMatcher.isPublic(sanitizedExchange)) {
             return chain.filter(sanitizedExchange);
         }
@@ -77,10 +71,6 @@ public class JwtAuthenticationFilter
                                 AuthenticationHeaders.AUTHORIZATION
                         );
 
-        /*
-         * Authorization 헤더가 없거나
-         * 공백 문자열인 경우 인증을 거부합니다.
-         */
         if (
                 authorizationHeader == null
                         || authorizationHeader.isBlank()
@@ -92,15 +82,6 @@ public class JwtAuthenticationFilter
             );
         }
 
-        /*
-         * Bearer 인증 스킴은 대소문자를 구분하지 않습니다.
-         *
-         * 다음 형식을 모두 허용합니다.
-         * Bearer token
-         * bearer token
-         * BEARER token
-         * BeArEr token
-         */
         if (!hasBearerPrefix(authorizationHeader)) {
             return writeUnauthorizedResponse(
                     sanitizedExchange,
@@ -109,18 +90,13 @@ public class JwtAuthenticationFilter
             );
         }
 
-        /*
-         * Bearer 접두사 이후의 Access Token 문자열만 추출합니다.
-         */
         String accessToken =
                 authorizationHeader.substring(
-                        AuthenticationHeaders.BEARER_PREFIX.length()
+                        AuthenticationHeaders
+                                .BEARER_PREFIX
+                                .length()
                 ).trim();
 
-        /*
-         * Authorization: Bearer 와 같이
-         * 실제 토큰 값이 없는 경우 인증을 거부합니다.
-         */
         if (accessToken.isBlank()) {
             return writeUnauthorizedResponse(
                     sanitizedExchange,
@@ -130,19 +106,11 @@ public class JwtAuthenticationFilter
         }
 
         try {
-            /*
-             * Access Token의 서명, 만료 시간, 토큰 타입 등을
-             * 검증하고 사용자 정보를 추출합니다.
-             */
             JwtClaims jwtClaims =
                     gatewayJwtProvider.validateAccessToken(
                             accessToken
                     );
 
-            /*
-             * JWT에서 추출한 회원 ID와 역할을
-             * 내부 인증 헤더에 추가합니다.
-             */
             ServerWebExchange authenticatedExchange =
                     addAuthenticationHeaders(
                             sanitizedExchange,
@@ -160,13 +128,6 @@ public class JwtAuthenticationFilter
         }
     }
 
-    /**
-     * Authorization 헤더가 Bearer 인증 스킴으로 시작하는지
-     * 대소문자를 구분하지 않고 확인합니다.
-     *
-     * @param authorizationHeader Authorization 헤더 값
-     * @return Bearer 접두사로 시작하면 true
-     */
     private boolean hasBearerPrefix(
             String authorizationHeader
     ) {
@@ -175,14 +136,19 @@ public class JwtAuthenticationFilter
                 0,
                 AuthenticationHeaders.BEARER_PREFIX,
                 0,
-                AuthenticationHeaders.BEARER_PREFIX.length()
+                AuthenticationHeaders
+                        .BEARER_PREFIX
+                        .length()
         );
     }
 
     /**
-     * 클라이언트가 직접 보낸 내부 인증 헤더를 제거합니다.
+     * 클라이언트가 직접 전달한 내부 헤더를 제거한다.
+     *
+     * Gateway만 해당 헤더를 생성할 수 있다.
      */
-    private ServerWebExchange removeClientAuthenticationHeaders(
+    private ServerWebExchange
+    removeClientAuthenticationHeaders(
             ServerWebExchange exchange
     ) {
         return exchange.mutate()
@@ -195,14 +161,20 @@ public class JwtAuthenticationFilter
                             headers.remove(
                                     AuthenticationHeaders.USER_ROLE
                             );
+
+                            headers.remove(
+                                    AuthenticationHeaders.USER_NICKNAME
+                            );
                         })
                 )
                 .build();
     }
 
     /**
-     * JWT 검증을 통해 얻은 회원 ID와 역할을
-     * 내부 인증 헤더에 추가합니다.
+     * 검증된 JWT 정보를 내부 헤더로 변환한다.
+     *
+     * 한글 닉네임을 HTTP 헤더에 직접 넣지 않고
+     * UTF-8 Base64 URL 형식으로 인코딩한다.
      */
     private ServerWebExchange addAuthenticationHeaders(
             ServerWebExchange exchange,
@@ -211,10 +183,6 @@ public class JwtAuthenticationFilter
         return exchange.mutate()
                 .request(requestBuilder ->
                         requestBuilder.headers(headers -> {
-                            /*
-                             * 하위 서비스는 Gateway가 주입한 내부 헤더를
-                             * 사용하도록 하고 원본 Access Token은 제거합니다.
-                             */
                             headers.remove(
                                     AuthenticationHeaders.AUTHORIZATION
                             );
@@ -230,14 +198,30 @@ public class JwtAuthenticationFilter
                                     AuthenticationHeaders.USER_ROLE,
                                     jwtClaims.role()
                             );
+
+                            headers.set(
+                                    AuthenticationHeaders.USER_NICKNAME,
+                                    encodeNickname(
+                                            jwtClaims.nickname()
+                                    )
+                            );
                         })
                 )
                 .build();
     }
 
-    /**
-     * 인증 실패 응답을 JSON으로 반환합니다.
-     */
+    private String encodeNickname(
+            String nickname
+    ) {
+        return Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(
+                        nickname.getBytes(
+                                StandardCharsets.UTF_8
+                        )
+                );
+    }
+
     private Mono<Void> writeUnauthorizedResponse(
             ServerWebExchange exchange,
             String code,
@@ -252,7 +236,9 @@ public class JwtAuthenticationFilter
 
         exchange.getResponse()
                 .getHeaders()
-                .setContentType(MediaType.APPLICATION_JSON);
+                .setContentType(
+                        MediaType.APPLICATION_JSON
+                );
 
         AuthenticationErrorResponse errorResponse =
                 new AuthenticationErrorResponse(
@@ -272,9 +258,6 @@ public class JwtAuthenticationFilter
                 .writeWith(Mono.just(dataBuffer));
     }
 
-    /**
-     * 인증 오류 객체를 JSON 바이트 배열로 변환합니다.
-     */
     private byte[] serializeErrorResponse(
             AuthenticationErrorResponse errorResponse
     ) {
@@ -297,9 +280,6 @@ public class JwtAuthenticationFilter
         }
     }
 
-    /**
-     * 다른 Gateway 필터보다 먼저 실행되도록 합니다.
-     */
     @Override
     public int getOrder() {
         return -100;
