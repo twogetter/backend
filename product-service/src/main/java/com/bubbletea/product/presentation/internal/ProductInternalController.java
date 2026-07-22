@@ -13,10 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
-public class ProductInternalController {
+public class ProductInternalController implements ProductInternalControllerDocs {
 
     private final ProductQueryService productQueryService;
 
+    @Override
     @GetMapping("/{id}/validation")
     public ProductResponseDto getProduct(@PathVariable Long id) {
         ProductDetailResponseDto dto = productQueryService.getProductDetailByPid(id);

@@ -9,6 +9,7 @@ import com.bubbletea.product.application.reservation.dto.ReservationListResponse
 import com.bubbletea.product.domain.reservation.ReservationCategory;
 import com.bubbletea.product.domain.reservation.ReservationStatus;
 import com.bubbletea.product.presentation.dto.ProductDeletionReservationRequestDto;
+import com.bubbletea.product.presentation.swagger.ProductReservationControllerDocs;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -25,11 +26,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-public class ProductReservationController {
+public class ProductReservationController implements ProductReservationControllerDocs {
 
     private final ProductReservationQueryService reservationQueryService;
     private final ProductReservationService productReservationService;
 
+    @Override
     @GetMapping("/reservations")
     public ApiResponse<ReservationListResponseDto> getReservations(
         @RequestParam(required = false) ReservationCategory category,
@@ -41,6 +43,7 @@ public class ProductReservationController {
             reservationQueryService.getReservations(category, status, pageable));
     }
 
+    @Override
     @GetMapping("/reservations/{reservationId}")
     public ApiResponse<ReservationDetailResponseDto> getReservation(
         @PathVariable String reservationId
@@ -48,6 +51,7 @@ public class ProductReservationController {
         return ApiResponse.success(reservationQueryService.getReservation(reservationId));
     }
 
+    @Override
     @PostMapping("/{productId}/deletion-reservations")
     public ApiResponse<Void> reserveDeletion(
         @PathVariable String productId,

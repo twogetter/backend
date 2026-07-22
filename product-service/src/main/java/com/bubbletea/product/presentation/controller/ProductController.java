@@ -7,6 +7,7 @@ import com.bubbletea.product.application.product.dto.ProductDetailResponseDto;
 import com.bubbletea.product.application.product.dto.ProductListResponseDto;
 import com.bubbletea.product.application.product.dto.ProductResponseDto;
 import com.bubbletea.product.presentation.dto.ProductRegisterRequestDto;
+import com.bubbletea.product.presentation.swagger.ProductControllerDocs;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -25,11 +26,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-public class ProductController {
+public class ProductController implements ProductControllerDocs {
 
     private final ProductRegistrationService productRegistrationService;
     private final ProductQueryService productQueryService;
 
+    @Override
     @PostMapping
     public ApiResponse<ProductResponseDto> registerProduct(
         @Valid @RequestBody ProductRegisterRequestDto request
@@ -38,6 +40,7 @@ public class ProductController {
         return ApiResponse.success(response);
     }
 
+    @Override
     @GetMapping
     public ApiResponse<ProductListResponseDto> getProducts(
         @RequestParam(required = false) String groupName,
@@ -48,11 +51,13 @@ public class ProductController {
             productQueryService.getProductList(groupName, cursor, size));
     }
 
+    @Override
     @GetMapping("/groups")
     public ApiResponse<List<String>> getFilterableGroups() {
         return ApiResponse.success(productQueryService.getFilterableGroupNames());
     }
 
+    @Override
     @GetMapping("/{productId}")
     public ApiResponse<ProductDetailResponseDto> getProduct(
         @PathVariable String productId
@@ -60,6 +65,7 @@ public class ProductController {
         return ApiResponse.success(productQueryService.getProductDetail(productId));
     }
 
+    @Override
     @GetMapping("/search")
     public ApiResponse<ProductListResponseDto> searchProducts(
         @RequestParam String keyword,
