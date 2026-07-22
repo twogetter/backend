@@ -39,6 +39,9 @@ class GatewayAuthorizationIntegrationTest {
     private static final String ROLE_CLAIM =
             "role";
 
+    private static final String NICKNAME_CLAIM =
+            "nickname";
+
     private static final String TOKEN_TYPE_CLAIM =
             "tokenType";
 
@@ -432,6 +435,10 @@ class GatewayAuthorizationIntegrationTest {
                 .claim(
                         ROLE_CLAIM,
                         role
+                )
+                .claim(
+                        NICKNAME_CLAIM,
+                        "인가테스트회원"
                 )
                 .claim(
                         TOKEN_TYPE_CLAIM,

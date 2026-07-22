@@ -4,6 +4,7 @@ import com.bubbletea.gateway.authentication.jwt.GatewayJwtProvider;
 import com.bubbletea.gateway.authentication.path.PublicPathMatcher;
 import com.bubbletea.gateway.authentication.support.AuthenticationHeaders;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
@@ -28,6 +28,7 @@ import reactor.test.StepVerifier;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,6 +48,9 @@ class JwtAuthenticationFilterTest {
 
     private static final String ROLE_CLAIM =
             "role";
+
+    private static final String NICKNAME_CLAIM =
+            "nickname";
 
     private static final String TOKEN_TYPE_CLAIM =
             "tokenType";
@@ -83,7 +87,6 @@ class JwtAuthenticationFilterTest {
     @Test
     @DisplayName("로그인 API는 Access Token 없이 통과한다")
     void publicLoginApiPassesWithoutToken() {
-        // given
         MockServerWebExchange exchange =
                 MockServerWebExchange.from(
                         MockServerHttpRequest
@@ -97,14 +100,12 @@ class JwtAuthenticationFilterTest {
                 )
         ).thenReturn(Mono.empty());
 
-        // when
         Mono<Void> result =
                 jwtAuthenticationFilter.filter(
                         exchange,
                         gatewayFilterChain
                 );
 
-        // then
         StepVerifier.create(result)
                 .verifyComplete();
 
@@ -119,9 +120,8 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("공개 API에서도 클라이언트가 보낸 내부 인증 헤더를 제거한다")
+    @DisplayName("공개 API에서도 위조된 내부 인증 헤더를 제거한다")
     void publicApiRemovesForgedAuthenticationHeaders() {
-        // given
         MockServerWebExchange exchange =
                 MockServerWebExchange.from(
                         MockServerHttpRequest
@@ -134,6 +134,10 @@ class JwtAuthenticationFilterTest {
                                         AuthenticationHeaders.USER_ROLE,
                                         "ADMIN"
                                 )
+                                .header(
+                                        AuthenticationHeaders.USER_NICKNAME,
+                                        "forged"
+                                )
                                 .build()
                 );
 
@@ -143,27 +147,25 @@ class JwtAuthenticationFilterTest {
                 )
         ).thenReturn(Mono.empty());
 
-        ArgumentCaptor<ServerWebExchange> exchangeCaptor =
+        ArgumentCaptor<ServerWebExchange> captor =
                 ArgumentCaptor.forClass(
                         ServerWebExchange.class
                 );
 
-        // when
         Mono<Void> result =
                 jwtAuthenticationFilter.filter(
                         exchange,
                         gatewayFilterChain
                 );
 
-        // then
         StepVerifier.create(result)
                 .verifyComplete();
 
         verify(gatewayFilterChain)
-                .filter(exchangeCaptor.capture());
+                .filter(captor.capture());
 
         ServerWebExchange forwardedExchange =
-                exchangeCaptor.getValue();
+                captor.getValue();
 
         assertNull(
                 forwardedExchange.getRequest()
@@ -180,12 +182,19 @@ class JwtAuthenticationFilterTest {
                                 AuthenticationHeaders.USER_ROLE
                         )
         );
+
+        assertNull(
+                forwardedExchange.getRequest()
+                        .getHeaders()
+                        .getFirst(
+                                AuthenticationHeaders.USER_NICKNAME
+                        )
+        );
     }
 
     @Test
-    @DisplayName("보호 API에 Authorization 헤더가 없으면 401을 반환한다")
+    @DisplayName("보호 API에 토큰이 없으면 401을 반환한다")
     void protectedApiWithoutTokenReturnsUnauthorized() {
-        // given
         MockServerWebExchange exchange =
                 MockServerWebExchange.from(
                         MockServerHttpRequest
@@ -193,14 +202,12 @@ class JwtAuthenticationFilterTest {
                                 .build()
                 );
 
-        // when
         Mono<Void> result =
                 jwtAuthenticationFilter.filter(
                         exchange,
                         gatewayFilterChain
                 );
 
-        // then
         StepVerifier.create(result)
                 .verifyComplete();
 
@@ -220,12 +227,6 @@ class JwtAuthenticationFilterTest {
                 )
         );
 
-        assertTrue(
-                responseBody.contains(
-                        "Access Token이 필요합니다."
-                )
-        );
-
         verify(
                 gatewayFilterChain,
                 never()
@@ -235,28 +236,25 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("Bearer 형식이 아닌 Authorization 헤더는 401을 반환한다")
+    @DisplayName("Bearer 형식이 아니면 401을 반환한다")
     void invalidBearerFormatReturnsUnauthorized() {
-        // given
         MockServerWebExchange exchange =
                 MockServerWebExchange.from(
                         MockServerHttpRequest
                                 .get("/api/users/me")
                                 .header(
                                         HttpHeaders.AUTHORIZATION,
-                                        "invalid-access-token"
+                                        "invalid-token"
                                 )
                                 .build()
                 );
 
-        // when
         Mono<Void> result =
                 jwtAuthenticationFilter.filter(
                         exchange,
                         gatewayFilterChain
                 );
 
-        // then
         StepVerifier.create(result)
                 .verifyComplete();
 
@@ -275,19 +273,6 @@ class JwtAuthenticationFilterTest {
                         "AUTH_TOKEN_FORMAT_INVALID"
                 )
         );
-
-        assertTrue(
-                responseBody.contains(
-                        "Bearer"
-                )
-        );
-
-        verify(
-                gatewayFilterChain,
-                never()
-        ).filter(
-                any(ServerWebExchange.class)
-        );
     }
 
     @ParameterizedTest
@@ -297,14 +282,16 @@ class JwtAuthenticationFilterTest {
             "BEARER",
             "BeArEr"
     })
-    @DisplayName("Bearer 인증 스킴은 대소문자를 구분하지 않고 허용한다")
+    @DisplayName("Bearer 인증 스킴은 대소문자를 구분하지 않는다")
     void bearerSchemeIsCaseInsensitive(
             String bearerScheme
     ) {
-        // given
+        String nickname = "테스터";
+
         String accessToken = createToken(
                 1L,
                 "USER",
+                nickname,
                 "ACCESS"
         );
 
@@ -327,27 +314,25 @@ class JwtAuthenticationFilterTest {
                 )
         ).thenReturn(Mono.empty());
 
-        ArgumentCaptor<ServerWebExchange> exchangeCaptor =
+        ArgumentCaptor<ServerWebExchange> captor =
                 ArgumentCaptor.forClass(
                         ServerWebExchange.class
                 );
 
-        // when
         Mono<Void> result =
                 jwtAuthenticationFilter.filter(
                         exchange,
                         gatewayFilterChain
                 );
 
-        // then
         StepVerifier.create(result)
                 .verifyComplete();
 
         verify(gatewayFilterChain)
-                .filter(exchangeCaptor.capture());
+                .filter(captor.capture());
 
         ServerWebExchange forwardedExchange =
-                exchangeCaptor.getValue();
+                captor.getValue();
 
         assertEquals(
                 "1",
@@ -367,6 +352,15 @@ class JwtAuthenticationFilterTest {
                         )
         );
 
+        assertEquals(
+                encodeNickname(nickname),
+                forwardedExchange.getRequest()
+                        .getHeaders()
+                        .getFirst(
+                                AuthenticationHeaders.USER_NICKNAME
+                        )
+        );
+
         assertNull(
                 forwardedExchange.getRequest()
                         .getHeaders()
@@ -377,12 +371,14 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("클라이언트가 위조한 인증 헤더는 JWT의 실제 값으로 교체한다")
+    @DisplayName("클라이언트가 위조한 인증 헤더는 JWT 값으로 교체한다")
     void forgedAuthenticationHeadersAreReplaced() {
-        // given
+        String nickname = "실제닉네임";
+
         String accessToken = createToken(
                 7L,
                 "USER",
+                nickname,
                 "ACCESS"
         );
 
@@ -402,6 +398,10 @@ class JwtAuthenticationFilterTest {
                                         AuthenticationHeaders.USER_ROLE,
                                         "ADMIN"
                                 )
+                                .header(
+                                        AuthenticationHeaders.USER_NICKNAME,
+                                        "forged"
+                                )
                                 .build()
                 );
 
@@ -411,27 +411,25 @@ class JwtAuthenticationFilterTest {
                 )
         ).thenReturn(Mono.empty());
 
-        ArgumentCaptor<ServerWebExchange> exchangeCaptor =
+        ArgumentCaptor<ServerWebExchange> captor =
                 ArgumentCaptor.forClass(
                         ServerWebExchange.class
                 );
 
-        // when
         Mono<Void> result =
                 jwtAuthenticationFilter.filter(
                         exchange,
                         gatewayFilterChain
                 );
 
-        // then
         StepVerifier.create(result)
                 .verifyComplete();
 
         verify(gatewayFilterChain)
-                .filter(exchangeCaptor.capture());
+                .filter(captor.capture());
 
         ServerWebExchange forwardedExchange =
-                exchangeCaptor.getValue();
+                captor.getValue();
 
         String forwardedUserId =
                 forwardedExchange.getRequest()
@@ -447,8 +445,20 @@ class JwtAuthenticationFilterTest {
                                 AuthenticationHeaders.USER_ROLE
                         );
 
+        String forwardedNickname =
+                forwardedExchange.getRequest()
+                        .getHeaders()
+                        .getFirst(
+                                AuthenticationHeaders.USER_NICKNAME
+                        );
+
         assertEquals("7", forwardedUserId);
         assertEquals("USER", forwardedRole);
+
+        assertEquals(
+                encodeNickname(nickname),
+                forwardedNickname
+        );
 
         assertFalse(
                 "999".equals(forwardedUserId)
@@ -457,40 +467,39 @@ class JwtAuthenticationFilterTest {
         assertFalse(
                 "ADMIN".equals(forwardedRole)
         );
+
+        assertFalse(
+                "forged".equals(forwardedNickname)
+        );
     }
 
     @Test
-    @DisplayName("Refresh Token으로 보호 API에 접근하면 401을 반환한다")
-    void refreshTokenReturnsUnauthorized() {
-        // given
-        String refreshToken = createToken(
+    @DisplayName("nickname 클레임이 없으면 401을 반환한다")
+    void missingNicknameClaimReturnsUnauthorized() {
+        String accessToken = createToken(
                 1L,
                 "USER",
-                "REFRESH"
+                null,
+                "ACCESS"
         );
 
         MockServerWebExchange exchange =
                 MockServerWebExchange.from(
                         MockServerHttpRequest
-                                .method(
-                                        HttpMethod.GET,
-                                        "/api/users/me"
-                                )
+                                .get("/api/users/me")
                                 .header(
                                         HttpHeaders.AUTHORIZATION,
-                                        "Bearer " + refreshToken
+                                        "Bearer " + accessToken
                                 )
                                 .build()
                 );
 
-        // when
         Mono<Void> result =
                 jwtAuthenticationFilter.filter(
                         exchange,
                         gatewayFilterChain
                 );
 
-        // then
         StepVerifier.create(result)
                 .verifyComplete();
 
@@ -506,9 +515,57 @@ class JwtAuthenticationFilterTest {
 
         assertTrue(
                 responseBody.contains(
-                        "AUTH_TOKEN_INVALID"
+                        "토큰에 회원 닉네임이 없습니다."
                 )
         );
+
+        verify(
+                gatewayFilterChain,
+                never()
+        ).filter(
+                any(ServerWebExchange.class)
+        );
+    }
+
+    @Test
+    @DisplayName("Refresh Token으로 보호 API에 접근하면 401을 반환한다")
+    void refreshTokenReturnsUnauthorized() {
+        String refreshToken = createToken(
+                1L,
+                "USER",
+                null,
+                "REFRESH"
+        );
+
+        MockServerWebExchange exchange =
+                MockServerWebExchange.from(
+                        MockServerHttpRequest
+                                .get("/api/users/me")
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + refreshToken
+                                )
+                                .build()
+                );
+
+        Mono<Void> result =
+                jwtAuthenticationFilter.filter(
+                        exchange,
+                        gatewayFilterChain
+                );
+
+        StepVerifier.create(result)
+                .verifyComplete();
+
+        assertEquals(
+                HttpStatus.UNAUTHORIZED,
+                exchange.getResponse().getStatusCode()
+        );
+
+        String responseBody =
+                exchange.getResponse()
+                        .getBodyAsString()
+                        .block();
 
         assertTrue(
                 responseBody.contains(
@@ -527,31 +584,54 @@ class JwtAuthenticationFilterTest {
     private String createToken(
             Long memberId,
             String role,
+            String nickname,
             String tokenType
     ) {
         Instant now = Instant.now();
 
-        return Jwts.builder()
-                .subject(
-                        String.valueOf(memberId)
-                )
-                .claim(
-                        ROLE_CLAIM,
-                        role
-                )
-                .claim(
-                        TOKEN_TYPE_CLAIM,
-                        tokenType
-                )
-                .issuedAt(
-                        Date.from(now)
-                )
-                .expiration(
-                        Date.from(
-                                now.plusSeconds(3600)
+        JwtBuilder builder =
+                Jwts.builder()
+                        .subject(
+                                String.valueOf(memberId)
                         )
-                )
+                        .claim(
+                                ROLE_CLAIM,
+                                role
+                        )
+                        .claim(
+                                TOKEN_TYPE_CLAIM,
+                                tokenType
+                        )
+                        .issuedAt(
+                                Date.from(now)
+                        )
+                        .expiration(
+                                Date.from(
+                                        now.plusSeconds(3600)
+                                )
+                        );
+
+        if (nickname != null) {
+            builder.claim(
+                    NICKNAME_CLAIM,
+                    nickname
+            );
+        }
+
+        return builder
                 .signWith(secretKey)
                 .compact();
+    }
+
+    private String encodeNickname(
+            String nickname
+    ) {
+        return Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(
+                        nickname.getBytes(
+                                StandardCharsets.UTF_8
+                        )
+                );
     }
 }

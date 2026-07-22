@@ -14,9 +14,17 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class GatewayJwtProvider {
 
-    private static final String ROLE_CLAIM = "role";
-    private static final String TOKEN_TYPE_CLAIM = "tokenType";
-    private static final String ACCESS_TOKEN_TYPE = "ACCESS";
+    private static final String ROLE_CLAIM =
+            "role";
+
+    private static final String NICKNAME_CLAIM =
+            "nickname";
+
+    private static final String TOKEN_TYPE_CLAIM =
+            "tokenType";
+
+    private static final String ACCESS_TOKEN_TYPE =
+            "ACCESS";
 
     private final SecretKey secretKey;
 
@@ -31,17 +39,20 @@ public class GatewayJwtProvider {
     }
 
     /**
-     * Access Token을 검증하고,
-     * 하위 서비스에 전달할 사용자 정보를 반환합니다.
+     * Access Token을 검증하고
+     * 하위 서비스에 전달할 사용자 정보를 반환한다.
      *
      * 검증 내용:
-     * 1. JWT 서명이 올바른지
-     * 2. JWT가 만료되지 않았는지
-     * 3. tokenType이 ACCESS인지
-     * 4. subject에 회원 ID가 존재하는지
-     * 5. role Claim이 존재하는지
+     * 1. JWT 서명
+     * 2. JWT 만료 시간
+     * 3. tokenType ACCESS 여부
+     * 4. 회원 ID 존재 여부
+     * 5. 역할 존재 여부
+     * 6. 닉네임 존재 여부
      */
-    public JwtClaims validateAccessToken(String token) {
+    public JwtClaims validateAccessToken(
+            String token
+    ) {
         validateTokenValue(token);
 
         try {
@@ -49,13 +60,23 @@ public class GatewayJwtProvider {
 
             validateAccessTokenType(claims);
 
-            Long userId = extractUserId(claims);
-            String role = extractRole(claims);
+            Long userId =
+                    extractUserId(claims);
+
+            String role =
+                    extractRole(claims);
+
+            String nickname =
+                    extractNickname(claims);
 
             return new JwtClaims(
                     userId,
-                    role
+                    role,
+                    nickname
             );
+
+        } catch (InvalidJwtException exception) {
+            throw exception;
 
         } catch (ExpiredJwtException exception) {
             throw new InvalidJwtException(
@@ -85,7 +106,9 @@ public class GatewayJwtProvider {
                 .getPayload();
     }
 
-    private void validateAccessTokenType(Claims claims) {
+    private void validateAccessTokenType(
+            Claims claims
+    ) {
         String tokenType = claims.get(
                 TOKEN_TYPE_CLAIM,
                 String.class
@@ -131,6 +154,26 @@ public class GatewayJwtProvider {
         }
 
         return role;
+    }
+
+    private String extractNickname(
+            Claims claims
+    ) {
+        String nickname = claims.get(
+                NICKNAME_CLAIM,
+                String.class
+        );
+
+        if (
+                nickname == null
+                        || nickname.isBlank()
+        ) {
+            throw new InvalidJwtException(
+                    "토큰에 회원 닉네임이 없습니다."
+            );
+        }
+
+        return nickname;
     }
 
     private void validateTokenValue(String token) {
