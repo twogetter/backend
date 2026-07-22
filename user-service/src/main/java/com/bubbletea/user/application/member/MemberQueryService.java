@@ -65,8 +65,8 @@ public class MemberQueryService {
 
     private Member getMember(Long memberId) {
         return memberRepository.findById(memberId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
+                .orElseThrow(
+                        () -> new IllegalArgumentException(
                                 "회원을 찾을 수 없습니다. memberId="
                                         + memberId
                         )
