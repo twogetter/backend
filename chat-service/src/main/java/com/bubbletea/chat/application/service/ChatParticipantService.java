@@ -48,21 +48,25 @@ public class ChatParticipantService {
 
   @Transactional
   public void delete(Long roomId, Long fanId, LocalDateTime endedAt) {
-    ChatParticipant participant = chatParticipantRepository.findByRoomIdAndUserId(roomId, fanId)
+    ChatPeriod chatPeriod = chatPeriodRepository
+        .findTopByRoomIdAndFanIdAndStatusAndStartedAtLessThanEqualOrderByStartedAtDesc(
+            roomId, fanId, ParticipantStatus.ACTIVE, endedAt)
+        .orElse(null);
+
+    if (chatPeriod == null) {
+      log.warn("유효하지 않거나 지연 수신된 구독 종료 이벤트입니다. roomId={}, fanId={}, endedAt={}", roomId, fanId, endedAt);
+      return;
+    }
+
+    chatPeriod.deactivate(endedAt);
+    log.info("구독 이력이 종료되었습니다. roomId={}, fanId={}, endedAt={}", roomId, fanId, endedAt);
+
+    chatParticipantRepository.findByRoomIdAndUserId(roomId, fanId)
         .filter(p -> p.getStatus() == ParticipantStatus.ACTIVE)
-        .orElseThrow(() -> new AppException(ChatErrorCode.PARTICIPANT_NOT_FOUND));
-
-    participant.deactivate();
-    log.info("팬이 퇴장하였습니다. roomId={}, fanId={}", roomId, fanId);
-
-    chatPeriodRepository.findTopByRoomIdAndFanIdOrderByStartedAtDesc(roomId, fanId)
-        .ifPresentOrElse(
-            chatPeriod -> {
-              chatPeriod.deactivate(endedAt);
-              log.info("구독 이력이 종료되었습니다. roomId={}, fanId={}, endedAt={}", roomId, fanId, endedAt);
-            },
-            () -> log.warn("종료할 구독 이력을 찾지 못했습니다. roomId={}, fanId={}", roomId, fanId)
-        );
+        .ifPresent(participant -> {
+          participant.deactivate();
+          log.info("팬이 퇴장하였습니다. roomId={}, fanId={}", roomId, fanId);
+        });
   }
 
   @Transactional

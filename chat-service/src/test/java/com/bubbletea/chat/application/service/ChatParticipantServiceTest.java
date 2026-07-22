@@ -2,6 +2,8 @@ package com.bubbletea.chat.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,7 +56,7 @@ class ChatParticipantServiceTest {
 
     // Then
     assertThat(participantId).isEqualTo(100L);
-    
+
     ArgumentCaptor<ChatPeriod> periodCaptor = ArgumentCaptor.forClass(ChatPeriod.class);
     verify(chatPeriodRepository, times(1)).save(periodCaptor.capture());
 
@@ -73,6 +75,7 @@ class ChatParticipantServiceTest {
     Long roomId = 1L;
     Long fanId = 2L;
     LocalDateTime endedAt = LocalDateTime.now();
+    LocalDateTime startedAt = endedAt.minusDays(1);
 
     ChatParticipant mockParticipant = ChatParticipant.createFanParticipant(roomId, fanId);
     when(chatParticipantRepository.findByRoomIdAndUserId(roomId, fanId)).thenReturn(
@@ -81,12 +84,13 @@ class ChatParticipantServiceTest {
     ChatPeriod mockPeriod = ChatPeriod.builder()
         .roomId(roomId)
         .fanId(fanId)
-        .startedAt(LocalDateTime.now().minusDays(1))
+        .startedAt(startedAt)
         .status(ParticipantStatus.ACTIVE)
         .build();
+
     when(
-        chatPeriodRepository.findTopByRoomIdAndFanIdOrderByStartedAtDesc(roomId, fanId)).thenReturn(
-        Optional.of(mockPeriod));
+        chatPeriodRepository.findTopByRoomIdAndFanIdAndStatusAndStartedAtLessThanEqualOrderByStartedAtDesc(
+            roomId, fanId, ParticipantStatus.ACTIVE, endedAt)).thenReturn(Optional.of(mockPeriod));
 
     // When
     chatParticipantService.delete(roomId, fanId, endedAt);
@@ -95,5 +99,25 @@ class ChatParticipantServiceTest {
     assertThat(mockParticipant.getStatus()).isEqualTo(ParticipantStatus.INACTIVE);
     assertThat(mockPeriod.getStatus()).isEqualTo(ParticipantStatus.INACTIVE);
     assertThat(mockPeriod.getEndedAt()).isEqualTo(endedAt);
+  }
+
+  @Test
+  @DisplayName("재구독 이후 뒤늦게 수신된 이전 구독 종료 이벤트는 현재 활성 상태를 변경하지 않고 무시된다")
+  void delete_StaleExpiredEvent_ShouldIgnoreAndKeepActive() {
+    // Given
+    Long roomId = 1L;
+    Long fanId = 2L;
+
+    LocalDateTime staleEndedAt = LocalDateTime.now().minusHours(1);
+
+    when(
+        chatPeriodRepository.findTopByRoomIdAndFanIdAndStatusAndStartedAtLessThanEqualOrderByStartedAtDesc(
+            roomId, fanId, ParticipantStatus.ACTIVE, staleEndedAt)).thenReturn(Optional.empty());
+
+    // When
+    chatParticipantService.delete(roomId, fanId, staleEndedAt);
+
+    // Then
+    verify(chatParticipantRepository, never()).findByRoomIdAndUserId(anyLong(), anyLong());
   }
 }
