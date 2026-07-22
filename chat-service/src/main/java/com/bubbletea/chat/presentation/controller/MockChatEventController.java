@@ -20,8 +20,10 @@ public class MockChatEventController {
   @PostMapping("/published")
   public ResponseEntity<Void> publishChatEvent() {
 
+    String uniqueEventId = "chat:CHAT_PUBLISHED:mock:" + System.currentTimeMillis();
+
     ChatPublishedEvent event = new ChatPublishedEvent(
-        "chat:CHAT_PUBLISHED:1:2026-07-22",
+        uniqueEventId,
         1L,
         "아이돌",
         "안녕하세요",
