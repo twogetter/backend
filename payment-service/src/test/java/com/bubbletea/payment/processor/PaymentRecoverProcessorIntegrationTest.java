@@ -201,6 +201,7 @@ class PaymentRecoverProcessorIntegrationTest implements PostgresTestContainer, K
         PaymentCancel cancel = paymentCancelRepository.save(
                 PaymentCancelFixture.create(payment)
                         .cancelAmount(BigDecimal.valueOf(12000))
+                        .status(CancelStatus.UNKNOWN_HOLD)
                         .build()
         );
 
