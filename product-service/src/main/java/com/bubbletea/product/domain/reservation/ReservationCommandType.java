@@ -1,5 +1,7 @@
 package com.bubbletea.product.domain.reservation;
 
+import java.util.Arrays;
+import java.util.List;
 import lombok.AllArgsConstructor;
 
 
@@ -22,6 +24,14 @@ public enum ReservationCommandType {
 
     public ReservationCategory category() {
         return category;
+    }
+
+    public static List<ReservationCommandType> ofCategory(
+        ReservationCategory category
+    ) {
+        return Arrays.stream(values())
+            .filter(type -> type.category == category)
+            .toList();
     }
 
 }

@@ -12,17 +12,20 @@ public record ChatRoomResponseDto(
     ChatRoomStatus status,
     Long lastReadId,
     ParticipantRole role,
-    ParticipantStatus participantStatus
+    ParticipantStatus participantStatus,
+    long unreadCount
 ) {
 
-  public static ChatRoomResponseDto from(ChatRoom room, ChatParticipant participant) {
+  public static ChatRoomResponseDto from(ChatRoom room, ChatParticipant participant,
+      long unreadCount) {
     return new ChatRoomResponseDto(
         room.getId(),
         room.getArtistId(),
         room.getStatus(),
         participant.getLastReadId(),
         participant.getRole(),
-        participant.getStatus()
+        participant.getStatus(),
+        unreadCount
     );
   }
 }

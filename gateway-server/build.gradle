@@ -1,5 +1,13 @@
 apply plugin: 'org.springframework.boot'
 
+ext {
+    // Jackson 2.x 버전 오버라이드
+    set('jackson-2-bom.version', '2.21.5')
+
+    // Jackson 3.x 버전 오버라이드
+    set('jackson-bom.version', '3.1.5')
+}
+
 dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
@@ -7,6 +15,13 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation 'org.springframework.cloud:spring-cloud-starter-loadbalancer'
+
+    implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+
+    testImplementation 'io.projectreactor:reactor-test'
 }
 
-tasks.register("prepareKotlinBuildScriptModel"){}
+tasks.register("prepareKotlinBuildScriptModel") {
+}

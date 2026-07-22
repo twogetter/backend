@@ -73,6 +73,7 @@ public class AuthCommandService {
                     memberResponse.email(),
                     memberResponse.nickname()
             );
+
         } catch (RuntimeException saveException) {
             rollbackCreatedMember(
                     memberResponse.memberId(),
@@ -88,8 +89,8 @@ public class AuthCommandService {
      *
      * 1. 이메일로 Auth 계정 조회
      * 2. BCrypt 비밀번호 검증
-     * 3. User Service에서 회원 상태 및 역할 검증
-     * 4. Access/Refresh Token 발급
+     * 3. User Service에서 회원 상태, 역할, 닉네임 조회
+     * 4. Access Token과 Refresh Token 발급
      * 5. Refresh Token Redis 저장
      */
     public TokenResult login(LoginCommand command) {
@@ -115,7 +116,8 @@ public class AuthCommandService {
 
         return issueTokens(
                 memberInfo.memberId(),
-                memberInfo.role()
+                memberInfo.role(),
+                memberInfo.nickname()
         );
     }
 
@@ -152,6 +154,11 @@ public class AuthCommandService {
             );
         }
 
+        /*
+         * 재발급 시 user-service에서 회원 정보를 다시 조회한다.
+         * 닉네임이 변경되었다면 새로운 Access Token에는
+         * 변경된 최신 닉네임이 포함된다.
+         */
         MemberAuthInfoResponse memberInfo =
                 userServiceClient.getMemberAuthInfo(memberId);
 
@@ -159,7 +166,8 @@ public class AuthCommandService {
 
         return issueTokens(
                 memberInfo.memberId(),
-                memberInfo.role()
+                memberInfo.role(),
+                memberInfo.nickname()
         );
     }
 
@@ -197,14 +205,21 @@ public class AuthCommandService {
         refreshTokenStore.deleteByMemberId(memberId);
     }
 
+    /**
+     * Access Token에는 닉네임을 포함한다.
+     *
+     * Refresh Token에는 변경 가능한 닉네임을 포함하지 않는다.
+     */
     private TokenResult issueTokens(
             Long memberId,
-            String role
+            String role,
+            String nickname
     ) {
         String accessToken =
                 jwtProvider.createAccessToken(
                         memberId,
-                        role
+                        role,
+                        nickname
                 );
 
         String refreshToken =
@@ -237,6 +252,7 @@ public class AuthCommandService {
     ) {
         try {
             userServiceClient.rollbackSignUp(memberId);
+
         } catch (RuntimeException rollbackException) {
             log.error(
                     "회원가입 보상 처리 실패. memberId={}",
@@ -284,6 +300,15 @@ public class AuthCommandService {
         if (!ACTIVE_STATUS.equals(memberInfo.status())) {
             throw new IllegalArgumentException(
                     "활성 상태의 회원이 아닙니다."
+            );
+        }
+
+        if (
+                memberInfo.nickname() == null
+                        || memberInfo.nickname().isBlank()
+        ) {
+            throw new IllegalArgumentException(
+                    "회원 닉네임 정보가 없습니다."
             );
         }
     }

@@ -45,4 +45,17 @@ public class ChatParticipantService {
     participant.deactivate();
     log.info("팬이 퇴장하였습니다. roomId={}, userId={}", roomId, userId);
   }
+
+  @Transactional
+  public void updateLastReadId(Long roomId, Long userId, Long lastReadId) {
+    ChatParticipant participant = getParticipantByRoomIdAndUserId(roomId, userId);
+    participant.updateLastReadId(lastReadId);
+  }
+
+  private ChatParticipant getParticipantByRoomIdAndUserId(Long roomId, Long userId) {
+    return chatParticipantRepository.findByRoomIdAndUserId(roomId, userId)
+        .filter(p -> p.getStatus() == ParticipantStatus.ACTIVE)
+        .orElseThrow(() -> new AppException(ChatErrorCode.PARTICIPANT_NOT_FOUND));
+  }
 }
+

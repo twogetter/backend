@@ -2,11 +2,14 @@ package com.bubbletea.user.presentation.member;
 
 import com.bubbletea.user.application.member.MemberCommandService;
 import com.bubbletea.user.application.member.MemberQueryService;
+import com.bubbletea.user.application.member.result.MemberAuthInfoResult;
 import com.bubbletea.user.application.member.result.MemberInfoResult;
 import com.bubbletea.user.application.member.result.MemberProfileResult;
 import com.bubbletea.user.application.member.result.MemberRoleResult;
 import com.bubbletea.user.application.member.result.MemberStatusResult;
+import com.bubbletea.user.presentation.member.dto.MemberAuthInfoResponseDto;
 import com.bubbletea.user.presentation.member.dto.MemberCreateRequestDto;
+import com.bubbletea.user.presentation.member.dto.MemberCreateResponseDto;
 import com.bubbletea.user.presentation.member.dto.MemberInfoResponseDto;
 import com.bubbletea.user.presentation.member.dto.MemberProfileResponseDto;
 import com.bubbletea.user.presentation.member.dto.MemberRoleResponseDto;
@@ -31,13 +34,44 @@ public class InternalMemberController {
     private final MemberCommandService memberCommandService;
     private final MemberQueryService memberQueryService;
 
+    /**
+     * Auth Service 회원가입 요청
+     */
     @PostMapping
-    public Long create(
-            @Valid @RequestBody MemberCreateRequestDto request
+    public MemberCreateResponseDto create(
+            @Valid @RequestBody
+            MemberCreateRequestDto request
     ) {
-        return memberCommandService.save(
-                request.toCommand()
-        );
+        MemberInfoResult result =
+                memberCommandService.save(
+                        request.toCommand()
+                );
+
+        return MemberCreateResponseDto.from(result);
+    }
+
+    /**
+     * Auth Service 로그인 및 토큰 재발급용 회원 정보
+     */
+    @GetMapping("/{memberId}/auth-info")
+    public MemberAuthInfoResponseDto authInfo(
+            @PathVariable Long memberId
+    ) {
+        MemberAuthInfoResult result =
+                memberQueryService.getAuthInfo(memberId);
+
+        return MemberAuthInfoResponseDto.from(result);
+    }
+
+    /**
+     * Auth 계정 저장 실패 시 회원가입 보상 처리
+     */
+    @DeleteMapping("/{memberId}/signup-rollback")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void rollbackSignUp(
+            @PathVariable Long memberId
+    ) {
+        memberCommandService.rollbackSignUp(memberId);
     }
 
     @GetMapping("/{memberId}")
@@ -78,16 +112,5 @@ public class InternalMemberController {
                 memberQueryService.getRole(memberId);
 
         return MemberRoleResponseDto.from(result);
-    }
-
-    /**
-     * Auth 계정 저장 실패 시 호출되는 회원가입 보상 API
-     */
-    @DeleteMapping("/{memberId}/signup-rollback")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void rollbackSignUp(
-            @PathVariable Long memberId
-    ) {
-        memberCommandService.rollbackSignUp(memberId);
     }
 }

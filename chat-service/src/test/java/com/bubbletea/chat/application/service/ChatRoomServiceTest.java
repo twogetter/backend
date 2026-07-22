@@ -1,6 +1,7 @@
 package com.bubbletea.chat.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,8 +12,10 @@ import com.bubbletea.chat.domain.entity.ChatRoom;
 import com.bubbletea.chat.domain.enums.ChatRoomStatus;
 import com.bubbletea.chat.domain.enums.ParticipantRole;
 import com.bubbletea.chat.domain.enums.ParticipantStatus;
+import com.bubbletea.chat.domain.repository.ChatMessageRepository;
 import com.bubbletea.chat.domain.repository.ChatParticipantRepository;
 import com.bubbletea.chat.domain.repository.ChatRoomRepository;
+import com.bubbletea.chat.domain.repository.dto.UnreadCountDto;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,9 @@ class ChatRoomServiceTest {
 
   @Mock
   private ChatParticipantRepository chatParticipantRepository;
+
+  @Mock
+  private ChatMessageRepository chatMessageRepository;
 
   @Mock
   private ChatRoomReader chatRoomReader;
@@ -105,6 +111,7 @@ class ChatRoomServiceTest {
     assertThat(result).hasSize(1);
     assertThat(result.getFirst().role()).isEqualTo(ParticipantRole.ARTIST);
     assertThat(result.getFirst().participantStatus()).isEqualTo(ParticipantStatus.ACTIVE);
+    assertThat(result.getFirst().unreadCount()).isEqualTo(0L); // 아티스트는 항상 0L
   }
 
   @Test
@@ -132,13 +139,26 @@ class ChatRoomServiceTest {
         List.of(10L, 11L), ChatRoomStatus.ACTIVE
     )).thenReturn(List.of(room1, room2));
 
+    UnreadCountDto proj1 = mock(UnreadCountDto.class);
+    when(proj1.getRoomId()).thenReturn(10L);
+    when(proj1.getCount()).thenReturn(5L);
+
+    UnreadCountDto proj2 = mock(UnreadCountDto.class);
+    when(proj2.getRoomId()).thenReturn(11L);
+    when(proj2.getCount()).thenReturn(2L);
+
+    when(chatMessageRepository.countUnreadMessagesForFan(userId))
+        .thenReturn(List.of(proj1, proj2));
+
     // when
     List<ChatRoomResponseDto> result = chatRoomService.getAll(userId, role);
 
     // then
     assertThat(result).hasSize(2);
     assertThat(result.get(0).role()).isEqualTo(ParticipantRole.FAN);
+    assertThat(result.get(0).unreadCount()).isEqualTo(5L);
     assertThat(result.get(1).role()).isEqualTo(ParticipantRole.FAN);
+    assertThat(result.get(1).unreadCount()).isEqualTo(2L);
   }
 
   @Test

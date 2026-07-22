@@ -3,14 +3,19 @@ package com.bubbletea.product.infrastructure.mongo.reservation;
 import com.bubbletea.product.domain.reservation.ProductChangeReservation;
 import com.bubbletea.product.domain.reservation.ProductChangeReservationRepository;
 import com.bubbletea.product.domain.reservation.ReservationCommandType;
+import com.bubbletea.product.domain.reservation.ReservationSearchCondition;
 import com.bubbletea.product.domain.reservation.ReservationStatus;
 import com.mongodb.client.result.UpdateResult;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -30,6 +35,28 @@ class ProductChangeReservationRepositoryImpl implements ProductChangeReservation
 
     private final ProductChangeReservationMongoRepository productChangeReservationMongoRepository;
     private final MongoTemplate mongoTemplate;
+
+    @Override
+    public Optional<ProductChangeReservation> findById(String reservationId) {
+        return productChangeReservationMongoRepository.findById(reservationId);
+    }
+
+    @Override
+    public Page<ProductChangeReservation> findAll(
+        ReservationSearchCondition condition,
+        Pageable pageable
+    ) {
+        Criteria criteria = buildCriteria(condition);
+
+        Query query = Query.query(criteria).with(pageable);
+        List<ProductChangeReservation> content = mongoTemplate.find(query,
+            ProductChangeReservation.class);
+
+        long total = mongoTemplate.count(Query.query(criteria),
+            ProductChangeReservation.class);
+
+        return new PageImpl<>(content, pageable, total);
+    }
 
     @Override
     public boolean existsByProductIdAndReservationStatus(
@@ -96,6 +123,25 @@ class ProductChangeReservationRepositoryImpl implements ProductChangeReservation
         return (int) mongoTemplate
             .updateMulti(query, update, ProductChangeReservation.class)
             .getModifiedCount();
+    }
+
+    private Criteria buildCriteria(ReservationSearchCondition condition) {
+        List<Criteria> conditions = new ArrayList<>();
+
+        if (condition.hasCategory()) {
+            List<ReservationCommandType> types = ReservationCommandType
+                .ofCategory(condition.category());
+            conditions.add(Criteria.where("commandType").in(types));
+        }
+
+        if (condition.hasStatus()) {
+            conditions.add(Criteria.where("status").is(condition.status()));
+        }
+
+        if (conditions.isEmpty()) {
+            return new Criteria();
+        }
+        return new Criteria().andOperator(conditions.toArray(new Criteria[0]));
     }
 
     private boolean applyGuardedByProcessing(
