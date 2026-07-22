@@ -21,6 +21,8 @@ public class MockChatEventController {
   public ResponseEntity<Void> publishChatEvent() {
 
     ChatPublishedEvent event = new ChatPublishedEvent(
+        "chat:CHAT_PUBLISHED:1:2026-07-22",
+        1L,
         "아이돌",
         "안녕하세요",
         MessageType.TEXT,
