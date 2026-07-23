@@ -31,12 +31,12 @@ public class PaymentRecoverProcessor {
     public void recoverAllHold() {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(5);
 
-        List<Payment> holdPayments = paymentRepository.findByStatusAndCreatedAtBefore(PaymentStatus.UNKNOWN_HOLD, threshold);
+        List<Payment> holdPayments = paymentRepository.findTop100ByStatusAndCreatedAtBefore(PaymentStatus.UNKNOWN_HOLD, threshold);
         for (Payment payment : holdPayments) {
             recoverSinglePayment(payment);
         }
 
-        List<PaymentCancel> holdCancels = paymentCancelRepository.findByStatusAndCreatedAtBefore(CancelStatus.UNKNOWN_HOLD, threshold);
+        List<PaymentCancel> holdCancels = paymentCancelRepository.findTop100ByStatusAndCreatedAtBefore(CancelStatus.UNKNOWN_HOLD, threshold);
         for (PaymentCancel cancel : holdCancels) {
             try {
                 paymentCancelFacade.cancel(cancel.getPayment().getUserId(), PaymentCancelRequestDto.builder()

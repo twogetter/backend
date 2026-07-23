@@ -25,7 +25,7 @@ public class PaymentOutboxProcessor {
 
     public void postEvent() {
         List<PaymentOutbox> processingEvents = transactionTemplate.execute(status -> {
-            int claimedCount = outboxRepository.claimPendingEvents(processorId);
+            int claimedCount = outboxRepository.claimPendingEvents(processorId, LocalDateTime.now());
             if (claimedCount == 0) {
                 return List.of();
             }
