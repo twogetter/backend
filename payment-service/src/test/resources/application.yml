@@ -31,4 +31,4 @@ toss:
     widget-secret-key: test-widget-secret
     api-secret-key: test-api-secret
     redirect-url: http://localhost/test
-    base-url: ${TOSS_BASE_URL:https://api.tosspayments.com/v1}
+    base-url: ""

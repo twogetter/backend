@@ -178,6 +178,7 @@ class BillingPaymentFacadeIntegrationTest implements PostgresTestContainer {
         assertThatThrownBy(() -> billingPaymentFacade.executeBilling(23L, 100L, event))
                 .isInstanceOf(PaymentTossApiException.class);
 
+        WIREMOCK.verify(3, postRequestedFor(urlEqualTo("/brandpay/payments")));
         Payment payment = paymentRepository.findByOrderId(100L).orElseThrow();
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.UNKNOWN_HOLD);
     }

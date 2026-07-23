@@ -12,9 +12,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers(disabledWithoutDocker = true)
 class PaymentServiceApplicationTests implements PostgresTestContainer, KafkaTestContainer {
 
-    @MockitoBean
-    private PaymentOutboxScheduler paymentOutboxScheduler;
-
     @Test
     void contextLoads() {
     }

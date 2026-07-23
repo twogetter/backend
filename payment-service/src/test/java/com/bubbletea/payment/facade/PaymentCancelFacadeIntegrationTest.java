@@ -127,9 +127,16 @@ class PaymentCancelFacadeIntegrationTest implements PostgresTestContainer {
 
         List<PaymentOutbox> outboxes = paymentOutboxRepository.findAll();
         assertThat(outboxes)
-                .hasSizeGreaterThanOrEqualTo(1)
+                .hasSize(2)
                 .extracting(PaymentOutbox::getStatus)
                 .containsOnly(OutboxStatus.PENDING);
+        assertThat(outboxes)
+                .hasSize(2)
+                .extracting(PaymentOutbox::getTopic)
+                .containsExactlyInAnyOrder(
+                        "order.payment.paymentCancelSuccess",
+                        "notification.payment.paymentCancelComplete"
+                );
 
         // ensure PaymentCancel entity was updated to SUCCESS
         PaymentCancel cancel = paymentCancelRepository.findByIdempotencyKey("payment-31-idemp").orElseThrow();
@@ -177,7 +184,7 @@ class PaymentCancelFacadeIntegrationTest implements PostgresTestContainer {
 
         List<PaymentOutbox> outboxes = paymentOutboxRepository.findAll();
         assertThat(outboxes)
-                .hasSizeGreaterThanOrEqualTo(1)
+                .hasSize(2)
                 .extracting(PaymentOutbox::getStatus)
                 .containsOnly(OutboxStatus.PENDING);
 
@@ -218,6 +225,8 @@ class PaymentCancelFacadeIntegrationTest implements PostgresTestContainer {
         // when & then
         assertThatThrownBy(() -> paymentCancelFacade.cancel(33L, dto, false))
                 .isInstanceOf(PaymentTossApiException.class);
+
+        WIREMOCK.verify(3, postRequestedFor(urlEqualTo("/payments/paykey-33/cancel")));
 
         Payment persisted = paymentRepository.findById(payment.getId()).orElseThrow();
         assertThat(persisted.getStatus()).isEqualTo(PaymentStatus.CANCEL_UNKNOWN_HOLD);

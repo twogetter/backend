@@ -106,9 +106,16 @@ class PaymentConfirmFacadeIntegrationTest implements PostgresTestContainer {
 
         List<PaymentOutbox> outboxes = paymentOutboxRepository.findAll();
         assertThat(outboxes)
-                .hasSizeGreaterThanOrEqualTo(1)
+                .hasSize(2)
                 .extracting(PaymentOutbox::getStatus)
                 .containsOnly(OutboxStatus.PENDING);
+        assertThat(outboxes)
+                .hasSize(2)
+                .extracting(PaymentOutbox::getTopic)
+                .containsExactlyInAnyOrder(
+                        "order.payment.paymentSuccess",
+                        "notification.payment.paymentComplete"
+                );
 
         WIREMOCK.verify(postRequestedFor(urlEqualTo("/brandpay/payments/confirm")));
     }
@@ -130,26 +137,33 @@ class PaymentConfirmFacadeIntegrationTest implements PostgresTestContainer {
                         .withBody("{\"code\": \"INVALID_CARD\", \"message\": \"승인 거절\"}")));
 
         // when & then
-        assertThatThrownBy(() -> paymentConfirmFacade.confirm(new PaymentConfirmRequestDto("", "toss-order-201", 50000L, "")))
+        assertThatThrownBy(() -> paymentConfirmFacade.confirm(new PaymentConfirmRequestDto("paykey-200", "toss-order-201", 50000L, "")))
                 .isInstanceOf(PaymentTossApiException.class);
 
         Payment persisted = paymentRepository.findByTossOrderId("toss-order-201").orElseThrow();
         // Circuit-breaker fallback converts client errors into external server error for confirmBrandpay -> hold
-        assertThat(persisted.getStatus()).isEqualTo(PaymentStatus.UNKNOWN_HOLD);
+        assertThat(persisted.getStatus()).isEqualTo(PaymentStatus.FAILED);
         assertThat(persisted.getPaymentKey()).isNull();
         assertThat(paymentHistoryRepository.count()).isEqualTo(1);
 
         List<PaymentOutbox> outboxes = paymentOutboxRepository.findAll();
         assertThat(outboxes)
-                .hasSizeGreaterThanOrEqualTo(1)
+                .hasSize(2)
                 .extracting(PaymentOutbox::getStatus)
                 .containsOnly(OutboxStatus.PENDING);
+        assertThat(outboxes)
+                .hasSize(2)
+                .extracting(PaymentOutbox::getTopic)
+                .containsExactlyInAnyOrder(
+                        "order.payment.paymentFailed",
+                        "notification.payment.paymentFail"
+                );
 
         WIREMOCK.verify(postRequestedFor(urlEqualTo("/brandpay/payments/confirm")));
     }
 
     @Test
-    @DisplayName("결제 승인 시 외부 서버가 계속 타임아웃을 반환하면 재시도 후 보류 상태가 된다")
+    @DisplayName("결제 승인 시 외부 서버가 계속 타임아웃을 반환하면 재시도 없이 보류 상태가 된다")
     void confirmContinuousTimeout() {
         // given
         UserBrandpayAuth auth = setupHelper.saveAuth(b -> b.userId(3L));
@@ -166,6 +180,21 @@ class PaymentConfirmFacadeIntegrationTest implements PostgresTestContainer {
         // when & then
         assertThatThrownBy(() -> paymentConfirmFacade.confirm(new PaymentConfirmRequestDto("", "toss-order-202", 70000L, "")))
                 .isInstanceOf(PaymentTossApiException.class);
+
+        List<PaymentOutbox> outboxes = paymentOutboxRepository.findAll();
+        assertThat(outboxes)
+                .hasSize(2)
+                .extracting(PaymentOutbox::getStatus)
+                .containsOnly(OutboxStatus.PENDING);
+        assertThat(outboxes)
+                .hasSize(2)
+                .extracting(PaymentOutbox::getTopic)
+                .containsExactlyInAnyOrder(
+                        "order.payment.paymentHold",
+                        "notification.payment.paymentHold"
+                );
+
+        WIREMOCK.verify(1, postRequestedFor(urlEqualTo("/brandpay/payments/confirm")));
 
         Payment persisted = paymentRepository.findByTossOrderId("toss-order-202").orElseThrow();
         assertThat(persisted.getStatus()).isEqualTo(PaymentStatus.UNKNOWN_HOLD);
