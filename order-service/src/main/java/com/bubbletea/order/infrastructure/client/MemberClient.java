@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 @FeignClient(name = "user-service")
 public interface MemberClient {
-  @GetMapping("/api/v1/members/{memberId}/validate")
+  // user-service 실제 내부 API 경로에 정렬. 존재하지 않으면 404 → FeignException 으로 검증 실패 처리.
+  @GetMapping("/internal/members/{memberId}")
   void validateMember(@PathVariable("memberId") Long memberId);
 }
