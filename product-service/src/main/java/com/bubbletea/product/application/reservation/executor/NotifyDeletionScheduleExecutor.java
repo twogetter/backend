@@ -1,6 +1,5 @@
 package com.bubbletea.product.application.reservation.executor;
 
-import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.DEACTIVATION_DATE;
 import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.DELETION_DATE;
 import static com.bubbletea.product.domain.reservation.ReservationPayloadKeys.PRODUCT_NAME;
 

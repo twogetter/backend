@@ -7,6 +7,8 @@ import lombok.Builder;
 @Schema
 @Builder
 public record ProductResponseDto(
+    Long pid,
+    String name,
     Long price,
     String productStatus,
     Long artistId

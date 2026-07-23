@@ -22,6 +22,8 @@ public class ProductInternalController implements ProductInternalControllerDocs 
     public ProductResponseDto getProduct(@PathVariable Long id) {
         ProductDetailResponseDto dto = productQueryService.getProductDetailByPid(id);
         return ProductResponseDto.builder()
+            .pid(dto.pid())
+            .name(dto.name())
             .price(dto.price())
             .productStatus(dto.status().name())
             .artistId(dto.artistId())
