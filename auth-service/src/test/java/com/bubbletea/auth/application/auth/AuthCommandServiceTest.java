@@ -663,7 +663,6 @@ class AuthCommandServiceTest {
                 .deleteByMemberId(1L);
     }
 
-
     @Test
     @DisplayName("Redis에 저장된 Refresh Token이 없으면 재발급에 실패한다")
     void refreshFailsWhenStoredTokenDoesNotExist() {
