@@ -26,7 +26,7 @@ public class OrderCreatedEventConsumer {
       log.info("[Kafka 수신] 구독 생성 이벤트 : {}", event);
 
       ChatRoom chatRoom = chatRoomService.getChatRoomByArtistId(event.artistId());
-      Long participantId = chatParticipantService.save(chatRoom.getId(), event.fanId());
+      Long participantId = chatParticipantService.save(chatRoom.getId(), event.fanId(), event.startedAt());
       log.info("[팬 입장 완료] chatRoomId: {}, fanId: {}, participantId: {}", chatRoom.getId(),
           event.fanId(), participantId);
     } catch (Exception e) {

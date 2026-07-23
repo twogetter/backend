@@ -26,7 +26,7 @@ public class OrderExpiredEventConsumer {
       log.info("[Kafka 수신] 구독 종료 이벤트 : {}", event);
 
       ChatRoom chatRoom = chatRoomService.getChatRoomByArtistId(event.artistId());
-      chatParticipantService.delete(chatRoom.getId(), event.fanId());
+      chatParticipantService.delete(chatRoom.getId(), event.fanId(), event.endedAt());
       log.info("[팬 퇴장 완료] chatRoomId: {}, fanId: {}", chatRoom.getId(), event.fanId());
     } catch (Exception e) {
       log.error("[Kafka 수신 실패] : {}", message, e);

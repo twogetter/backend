@@ -48,13 +48,13 @@ class OrderCreatedEventConsumerTest {
     ReflectionTestUtils.setField(chatRoom, "id", 100L);
 
     when(chatRoomService.getChatRoomByArtistId(artistId)).thenReturn(chatRoom);
-    when(chatParticipantService.save(100L, fanId)).thenReturn(500L);
+    when(chatParticipantService.save(100L, fanId, startedAt)).thenReturn(500L);
 
     // when
     orderCreatedEventConsumer.consume(message);
 
     // then
     verify(chatRoomService, times(1)).getChatRoomByArtistId(artistId);
-    verify(chatParticipantService, times(1)).save(100L, fanId);
+    verify(chatParticipantService, times(1)).save(100L, fanId, startedAt);
   }
 }
