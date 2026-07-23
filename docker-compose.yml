@@ -212,11 +212,6 @@ services:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URL: http://eureka-server:8761/eureka/
 
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/authdb
-      SPRING_DATASOURCE_USERNAME: auth_user
-      SPRING_DATASOURCE_PASSWORD: ${AUTH_DB_PASSWORD:-auth_pass}
-      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
-
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
 
@@ -226,29 +221,17 @@ services:
       - "8081:8081"
 
     depends_on:
-      config-server: { condition: service_healthy }
-      eureka-server: { condition: service_healthy }
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
     networks:
       - bubbletea-net
-
-  user-service:
-    build: {
-      context: .,
-      dockerfile: user-service/Dockerfile
-    }
-    container_name: user-service
-    environment:
-      CONFIG_SERVER_URL: http://config-server:8888
-      EUREKA_URL: http://eureka-server:8761/eureka/
-    ports: [ "8100:8100" ]
-    depends_on:
-      config-server: { condition: service_healthy }
-      eureka-server: { condition: service_healthy }
-      postgres:      { condition: service_healthy }
-    networks: [ bubbletea-net ]
 
   product-service:
     build: {
