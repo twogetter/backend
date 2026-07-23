@@ -14,7 +14,7 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
     @Modifying
     @Transactional
     @Query(value = "UPDATE payment_outbox SET status = 'PROCESSING', processor_id = :processorId, updated_at = :now " +
-            "WHERE id IN (SELECT id FROM payment_outbox WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT 50)",
+            "WHERE  AND status = 'PENDING', id IN (SELECT id FROM payment_outbox WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT 50)",
             nativeQuery = true)
     int claimPendingEvents(@Param("processorId") String processorId, @Param("now") LocalDateTime now);
 
