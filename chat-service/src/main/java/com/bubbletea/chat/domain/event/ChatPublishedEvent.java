@@ -4,14 +4,22 @@ import com.bubbletea.chat.domain.enums.MessageType;
 import java.time.LocalDateTime;
 
 public record ChatPublishedEvent(
+    String eventId,
+    Long memberId,
     String productName,
-    String messageData,
+    String message,
     MessageType messageType,
-    LocalDateTime createdAt
+    LocalDateTime sendedAt
 ) {
 
-  public static ChatPublishedEvent of(String productName, String messageData,
-      MessageType messageType, LocalDateTime createdAt) {
-    return new ChatPublishedEvent(productName, messageData, messageType, createdAt);
+  public static ChatPublishedEvent of(
+      String eventId,
+      Long memberId,
+      String productName,
+      String message,
+      MessageType messageType,
+      LocalDateTime sendedAt
+  ) {
+    return new ChatPublishedEvent(eventId, memberId, productName, message, messageType, sendedAt);
   }
 }

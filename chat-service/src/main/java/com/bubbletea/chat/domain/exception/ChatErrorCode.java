@@ -39,6 +39,12 @@ public enum ChatErrorCode implements ErrorCode {
       "유효하지 않은 참여자 역할입니다."
   ),
 
+  UNAUTHORIZED(
+      HttpStatus.UNAUTHORIZED,
+      "CHAT-UNAUTHORIZED",
+      "인증되지 않은 사용자이거나 토큰이 유효하지 않습니다."
+  ),
+
   INVALID_SIZE(
       HttpStatus.BAD_REQUEST,
       "CHAT-INVALID-SIZE",

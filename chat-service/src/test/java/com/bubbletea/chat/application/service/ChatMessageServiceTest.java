@@ -3,6 +3,7 @@ package com.bubbletea.chat.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -27,6 +28,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.bubbletea.chat.domain.event.ChatMessageSavedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -46,6 +49,9 @@ class ChatMessageServiceTest {
 
   @Mock
   private FanMessageValidator fanMessageValidator;
+
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private ChatMessageService chatMessageService;
@@ -91,6 +97,7 @@ class ChatMessageServiceTest {
       verify(activeParticipantValidator, times(1)).validate(roomId, senderId, ParticipantRole.FAN);
       verify(fanMessageValidator, times(1)).validate(roomId, senderId, ParticipantRole.FAN);
       verify(chatMessageRepository, times(1)).save(any(ChatMessage.class));
+      verify(eventPublisher, times(1)).publishEvent(any(ChatMessageSavedEvent.class));
     }
 
     @Test
@@ -111,6 +118,7 @@ class ChatMessageServiceTest {
           .messageType(MessageType.TEXT)
           .build();
       org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "id", 101L);
+      org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "createdAt", java.time.LocalDateTime.now());
 
       when(chatRoomRepository.findById(roomId)).thenReturn(Optional.of(mockRoom));
       doNothing().when(activeParticipantValidator)
@@ -130,6 +138,7 @@ class ChatMessageServiceTest {
           ParticipantRole.ARTIST);
       verify(fanMessageValidator, times(0)).validate(any(), any(), any());
       verify(chatMessageRepository, times(1)).save(any(ChatMessage.class));
+      verify(eventPublisher, times(1)).publishEvent(any(ChatMessageSavedEvent.class));
     }
 
     @Test

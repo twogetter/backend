@@ -7,14 +7,18 @@ import com.bubbletea.chat.domain.entity.ChatMessage;
 import com.bubbletea.chat.domain.entity.ChatRoom;
 import com.bubbletea.chat.domain.enums.ChatRoomStatus;
 import com.bubbletea.chat.domain.enums.ParticipantRole;
+import com.bubbletea.chat.domain.event.ChatMessageSavedEvent;
 import com.bubbletea.chat.domain.exception.ChatErrorCode;
 import com.bubbletea.chat.domain.repository.ChatMessageRepository;
 import com.bubbletea.chat.domain.repository.ChatRoomRepository;
+import com.bubbletea.chat.infrastructure.security.SecurityContext;
+import com.bubbletea.chat.infrastructure.security.SecurityContextHolder;
 import com.bubbletea.chat.presentation.controller.dto.ChatMessageCreateRequestDto;
 import com.bubbletea.common.exception.AppException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,6 +34,7 @@ public class ChatMessageService {
   private final ChatRoomRepository chatRoomRepository;
   private final ActiveParticipantValidator activeParticipantValidator;
   private final FanMessageValidator fanMessageValidator;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public ChatMessageResponseDto save(
@@ -62,6 +67,14 @@ public class ChatMessageService {
     ChatMessage savedMessage = chatMessageRepository.save(message);
 
     log.info("메시지 저장 성공! id={}, roomId={}, senderId={}", savedMessage.getId(), roomId, senderId);
+
+    String nickname = null;
+    SecurityContext context = SecurityContextHolder.getContext();
+    if (context != null) {
+      nickname = context.nickname();
+    }
+    
+    eventPublisher.publishEvent(new ChatMessageSavedEvent(savedMessage, role, nickname));
 
     return ChatMessageResponseDto.from(savedMessage);
   }
