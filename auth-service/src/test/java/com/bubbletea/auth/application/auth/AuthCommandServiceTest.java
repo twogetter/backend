@@ -662,5 +662,243 @@ class AuthCommandServiceTest {
         verify(refreshTokenStore)
                 .deleteByMemberId(1L);
     }
-}
 
+
+    @Test
+    @DisplayName("Redis에 저장된 Refresh Token이 없으면 재발급에 실패한다")
+    void refreshFailsWhenStoredTokenDoesNotExist() {
+        // given
+        String refreshToken = "refresh-token";
+
+        when(jwtProvider.getMemberId(refreshToken))
+                .thenReturn(1L);
+
+        when(refreshTokenStore.findByMemberId(1L))
+                .thenReturn(Optional.empty());
+
+        RefreshTokenCommand command =
+                new RefreshTokenCommand(refreshToken);
+
+        // when & then
+        assertThatThrownBy(
+                () -> authCommandService.refresh(command)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("저장된 Refresh Token이 없습니다.");
+
+        verify(jwtProvider)
+                .validateRefreshToken(refreshToken);
+
+        verify(jwtProvider)
+                .getMemberId(refreshToken);
+
+        verify(refreshTokenStore)
+                .findByMemberId(1L);
+
+        verifyNoInteractions(userServiceClient);
+
+        verify(jwtProvider, never())
+                .createAccessToken(
+                        anyLong(),
+                        any(String.class),
+                        any(String.class)
+                );
+
+        verify(jwtProvider, never())
+                .createRefreshToken(
+                        anyLong(),
+                        any(String.class)
+                );
+
+        verify(refreshTokenStore, never())
+                .save(
+                        anyLong(),
+                        any(String.class),
+                        any(Duration.class)
+                );
+    }
+
+    @Test
+    @DisplayName("Redis에 저장된 Refresh Token이 없으면 로그아웃에 실패한다")
+    void logoutFailsWhenStoredTokenDoesNotExist() {
+        // given
+        String refreshToken = "refresh-token";
+
+        when(jwtProvider.getMemberId(refreshToken))
+                .thenReturn(1L);
+
+        when(refreshTokenStore.findByMemberId(1L))
+                .thenReturn(Optional.empty());
+
+        LogoutCommand command =
+                new LogoutCommand(refreshToken);
+
+        // when & then
+        assertThatThrownBy(
+                () -> authCommandService.logout(command)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "이미 로그아웃되었거나 저장된 토큰이 없습니다."
+                );
+
+        verify(jwtProvider)
+                .validateRefreshToken(refreshToken);
+
+        verify(jwtProvider)
+                .getMemberId(refreshToken);
+
+        verify(refreshTokenStore)
+                .findByMemberId(1L);
+
+        verify(refreshTokenStore, never())
+                .deleteByMemberId(anyLong());
+
+        verifyNoInteractions(userServiceClient);
+    }
+
+    @Test
+    @DisplayName("요청 Refresh Token과 Redis 토큰이 다르면 로그아웃에 실패한다")
+    void logoutFailsWhenTokenDoesNotMatch() {
+        // given
+        String providedRefreshToken =
+                "provided-refresh-token";
+
+        String storedRefreshToken =
+                "stored-refresh-token";
+
+        when(jwtProvider.getMemberId(providedRefreshToken))
+                .thenReturn(1L);
+
+        when(refreshTokenStore.findByMemberId(1L))
+                .thenReturn(Optional.of(storedRefreshToken));
+
+        LogoutCommand command =
+                new LogoutCommand(providedRefreshToken);
+
+        // when & then
+        assertThatThrownBy(
+                () -> authCommandService.logout(command)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Refresh Token이 일치하지 않습니다.");
+
+        verify(jwtProvider)
+                .validateRefreshToken(providedRefreshToken);
+
+        verify(jwtProvider)
+                .getMemberId(providedRefreshToken);
+
+        verify(refreshTokenStore)
+                .findByMemberId(1L);
+
+        verify(refreshTokenStore, never())
+                .deleteByMemberId(anyLong());
+
+        verifyNoInteractions(userServiceClient);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 이메일이면 로그인에 실패한다")
+    void loginFailsWhenEmailDoesNotExist() {
+        // given
+        String email = "not-found@example.com";
+        String password = "Password123!";
+
+        when(authAccountRepository.findByEmail(email))
+                .thenReturn(Optional.empty());
+
+        LoginCommand command =
+                new LoginCommand(
+                        email,
+                        password
+                );
+
+        // when & then
+        assertThatThrownBy(
+                () -> authCommandService.login(command)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "이메일 또는 비밀번호가 올바르지 않습니다."
+                );
+
+        verify(authAccountRepository)
+                .findByEmail(email);
+
+        verifyNoInteractions(
+                passwordEncoder,
+                userServiceClient,
+                jwtProvider,
+                refreshTokenStore
+        );
+    }
+
+    @Test
+    @DisplayName("재발급 시 로그인할 수 없는 회원이면 토큰 발급에 실패한다")
+    void refreshFailsWhenMemberIsNotAvailable() {
+        // given
+        String refreshToken = "refresh-token";
+
+        MemberAuthInfoResponse memberInfo =
+                new MemberAuthInfoResponse(
+                        2L,
+                        "suspended@example.com",
+                        "정지회원",
+                        "USER",
+                        "SUSPENDED",
+                        false
+                );
+
+        when(jwtProvider.getMemberId(refreshToken))
+                .thenReturn(2L);
+
+        when(refreshTokenStore.findByMemberId(2L))
+                .thenReturn(Optional.of(refreshToken));
+
+        when(userServiceClient.getMemberAuthInfo(2L))
+                .thenReturn(memberInfo);
+
+        RefreshTokenCommand command =
+                new RefreshTokenCommand(refreshToken);
+
+        // when & then
+        assertThatThrownBy(
+                () -> authCommandService.refresh(command)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("로그인할 수 없는 회원입니다.");
+
+        verify(jwtProvider)
+                .validateRefreshToken(refreshToken);
+
+        verify(jwtProvider)
+                .getMemberId(refreshToken);
+
+        verify(refreshTokenStore)
+                .findByMemberId(2L);
+
+        verify(userServiceClient)
+                .getMemberAuthInfo(2L);
+
+        verify(jwtProvider, never())
+                .createAccessToken(
+                        anyLong(),
+                        any(String.class),
+                        any(String.class)
+                );
+
+        verify(jwtProvider, never())
+                .createRefreshToken(
+                        anyLong(),
+                        any(String.class)
+                );
+
+        verify(refreshTokenStore, never())
+                .save(
+                        anyLong(),
+                        any(String.class),
+                        any(Duration.class)
+                );
+    }
+}
