@@ -11,6 +11,8 @@ import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -30,6 +32,7 @@ public class StompChannelInterceptor implements ChannelInterceptor {
 
   private final JwtProvider jwtProvider;
   private final ActiveParticipantValidator activeParticipantValidator;
+  private final Environment environment;
 
   @Override
   public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
@@ -64,6 +67,11 @@ public class StompChannelInterceptor implements ChannelInterceptor {
     ParticipantRole role;
     String nickname;
 
+    // TODO: 후에 제거
+    boolean isLocalOrDevProfile = environment.acceptsProfiles(
+        Profiles.of("local", "dev", "test", "default"));
+    boolean isTestTokenAllowed = isLocalOrDevProfile && token.contains("test");
+
     if (jwtProvider.isValid(token)) {
       try {
         jwtProvider.validateAccessToken(token);
@@ -76,8 +84,7 @@ public class StompChannelInterceptor implements ChannelInterceptor {
       userId = jwtProvider.getMemberId(token);
       role = ParticipantRole.from(jwtProvider.getRole(token));
       nickname = jwtProvider.getNickname(token);
-    } else if (token.contains("test")) {
-      // TODO: 테스트용은 배포 전에 제거
+    } else if (isTestTokenAllowed) {
       // 로컬 테스트용
       if (token.contains("fan")) {
         userId = 2L;
