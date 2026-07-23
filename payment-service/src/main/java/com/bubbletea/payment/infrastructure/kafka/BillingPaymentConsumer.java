@@ -27,8 +27,9 @@ public class BillingPaymentConsumer {
     @KafkaListener(
             topics = "payment.order.payment-requested",
             groupId = "billing-payment-group",
-            concurrency = "3"
-    )
+            concurrency = "3",
+            containerFactory = "kafkaListenerContainerFactory"
+            )
     public void consumeBillingEvent(
             ConsumerRecord<String, BillingEvent> record,
             Acknowledgment ack,

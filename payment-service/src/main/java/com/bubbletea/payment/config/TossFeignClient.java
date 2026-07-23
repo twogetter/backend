@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-@FeignClient(name = "tossBrandpayClient", url = "https://api.tosspayments.com/v1")
+@FeignClient(name = "tossBrandpayClient", url = "${toss.payments.base-url}")
 public interface TossFeignClient {
 
     @PostMapping("/brandpay/authorizations/access-token")

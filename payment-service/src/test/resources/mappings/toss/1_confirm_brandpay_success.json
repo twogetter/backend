@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/brandpay/payments/confirm"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "jsonBody": {
+      "paymentKey": "{{jsonPath request.body '$.paymentKey'}}",
+      "orderId": "{{jsonPath request.body '$.orderId'}}",
+      "amount": "{{jsonPath request.body '$.amount'}}",
+      "status": "DONE",
+      "approvedAt": "{{now format='yyyy-MM-dd-HH:mm:ss'}}",
+      "method": "BRANDPAY"
+    },
+    "transformers": ["response-template"]
+  }
+}

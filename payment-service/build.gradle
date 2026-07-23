@@ -1,8 +1,10 @@
 apply plugin: 'org.springframework.boot'
+apply plugin: 'jacoco'
 
 dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     implementation project(':common-lib')
+    testImplementation project(':common-test')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
@@ -24,8 +26,43 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.wiremock:wiremock-standalone:3.9.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 }
 
 tasks.register("prepareKotlinBuildScriptModel"){}
+
+jacoco {
+    toolVersion = "0.8.14"
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test // 리포트 생성을 위해 test 태스크 선행 필수
+
+    reports {
+        xml.required = true
+        csv.required = false
+        html.required = true
+    }
+
+    // 💡 [실무 최적화] 복잡한 afterEvaluate 없이 깔끔하게 제외 클래스 선언
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, excludes: [
+                "**/*Application*",
+                "**/controller/**",
+                "**/*Scheduler*",
+                "**/*Request*",
+                "**/*Response*",
+                "**/dto/**",
+                "**/config/**",
+                "**/*Exception*",
+                "**/entity/Q*" // 팁: 향후 QueryDSL 도입 시 가짜 Q클래스 자동 제외
+        ])
+    }))
+}
