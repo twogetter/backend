@@ -663,3 +663,4 @@ class AuthCommandServiceTest {
                 .deleteByMemberId(1L);
     }
 }
+
