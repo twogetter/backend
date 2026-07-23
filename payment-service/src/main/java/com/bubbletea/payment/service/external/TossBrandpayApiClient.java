@@ -98,10 +98,13 @@ public class TossBrandpayApiClient {
     }
 
     public PaymentConfirmResponseDto confirmBrandpayFallback(PaymentConfirmRequestDto dto, String idempotencyKey, Throwable t) {
+        if (t instanceof PaymentTossApiException) {
+            throw (PaymentTossApiException) t;
+        }
+        
         if (t instanceof CallNotPermittedException) {
             log.error("🚨 [Fast-Fail] 토스 서버 장애 지속으로 인해 서킷 브레이커가 요청을 즉시 차단함. OrderId: {}", dto.orderId());
         } else {
-
             log.error("단건 결제 최종 실패 - OrderId: {}, Cause: {}", dto.orderId(), t.getMessage());
         }
         throw new PaymentTossApiException(PaymentErrorCode.EXTERNAL_SERVER_ERROR);
