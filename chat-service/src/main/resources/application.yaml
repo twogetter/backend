@@ -14,7 +14,7 @@ cors:
   allowed-origins: "http://localhost:3000,http://localhost:5173,http://localhost:8600,http://localhost:8000"
 
 jwt:
-  secret: "default_secret_key_for_chat_service_at_least_32_bytes_long!"
+  secret: ${JWT_SECRET:}
   access-token-expiration: 3600000
   refresh-token-expiration: 1209600000
 
