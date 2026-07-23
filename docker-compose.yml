@@ -190,7 +190,7 @@ services:
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URL: http://eureka-server:8761/eureka/
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set}"
     ports:
       - "8080:8080"
     depends_on:
@@ -215,7 +215,7 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
 
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set}"
 
     ports:
       - "8081:8081"
