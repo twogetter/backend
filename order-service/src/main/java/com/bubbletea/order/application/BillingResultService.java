@@ -63,7 +63,7 @@ public class BillingResultService {
       outboxRecorder.record(AGGREGATE_TYPE, subscription.getId(), "SubscriptionActivated",
           OrderKafkaTopic.SUBSCRIPTION_ACTIVATED, String.valueOf(subscription.getMemberId()),
           SubscriptionActivatedEvent.of(
-              subscription.getMemberId(), subscription.getProductId(), subscription.getId()));
+              subscription.getMemberId(), subscription.getProductId(), subscription.getStartedAt()));
       log.info("[BillingResult] 신규 구독 활성화. subscriptionId={}, orderId={}",
           subscription.getId(), order.getId());
     } else {

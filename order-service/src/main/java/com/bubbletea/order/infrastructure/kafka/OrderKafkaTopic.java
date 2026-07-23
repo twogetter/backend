@@ -4,7 +4,9 @@ public class OrderKafkaTopic {
 
   public static final String RENEWAL_SUBSCRIPTION = "notification.order.subscriptionRenewal";
 
-  public static final String SUBSCRIPTION_ACTIVATED = "chat.order.subscriptionActivated";
+  // 신규 구독 활성화 시 채팅방 팬 입장을 위해 chat-service 로 발행.
+  // chat-service 소비자(ChatKafkaTopics.ORDER_CREATED)와 토픽/페이로드를 일치시킨다.
+  public static final String SUBSCRIPTION_ACTIVATED = "chat.order.created";
 
   public static final String PAYMENT_FAILED = "notification.order.paymentFailed";
 

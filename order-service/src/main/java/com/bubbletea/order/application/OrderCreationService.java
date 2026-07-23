@@ -29,7 +29,7 @@ public class OrderCreationService {
       Long paymentMethodId, String idempotencyKey) {
     Subscription subscription = new Subscription(memberId, product.productId(), product.productName());
     BillingSchedule schedule =
-        new BillingSchedule(subscription, paymentMethodId, product.price());
+        new BillingSchedule(subscription, paymentMethodId, product.priceAmount());
     SubscriptionOrder order = schedule.createOrder();
 
     subscriptionRepository.save(subscription);
