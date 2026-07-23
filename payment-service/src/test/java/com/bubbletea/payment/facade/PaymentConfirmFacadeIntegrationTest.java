@@ -141,7 +141,6 @@ class PaymentConfirmFacadeIntegrationTest implements PostgresTestContainer {
                 .isInstanceOf(PaymentTossApiException.class);
 
         Payment persisted = paymentRepository.findByTossOrderId("toss-order-201").orElseThrow();
-        // Circuit-breaker fallback converts client errors into external server error for confirmBrandpay -> hold
         assertThat(persisted.getStatus()).isEqualTo(PaymentStatus.FAILED);
         assertThat(persisted.getPaymentKey()).isNull();
         assertThat(paymentHistoryRepository.count()).isEqualTo(1);
