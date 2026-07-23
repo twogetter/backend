@@ -10,11 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 
 @Slf4j
 @Configuration
-@Profile("dev")
 @RequiredArgsConstructor
 public class NotificationTemplateInitializer {
 
@@ -35,7 +33,7 @@ public class NotificationTemplateInitializer {
         }
       }
 
-      log.info("개발용 알림 템플릿 초기화 완료. createdCount={}", createdCount);
+      log.info("알림 템플릿 초기화 완료. createdCount={}", createdCount);
     };
   }
 
