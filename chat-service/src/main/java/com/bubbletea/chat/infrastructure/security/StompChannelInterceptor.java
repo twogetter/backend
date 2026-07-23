@@ -65,11 +65,19 @@ public class StompChannelInterceptor implements ChannelInterceptor {
     String nickname;
 
     if (jwtProvider.isValid(token)) {
+      try {
+        jwtProvider.validateAccessToken(token);
+      } catch (IllegalArgumentException e) {
+        log.warn("WebSocket CONNECT 실패 - Access Token이 아닙니다: {}", e.getMessage());
+        throw new AppException(ChatErrorCode.UNAUTHORIZED);
+      }
+
       // 진짜 토큰인 경우 원본 추출
       userId = jwtProvider.getMemberId(token);
       role = ParticipantRole.from(jwtProvider.getRole(token));
       nickname = jwtProvider.getNickname(token);
     } else if (token.contains("test")) {
+      // TODO: 테스트용은 배포 전에 제거
       // 로컬 테스트용
       if (token.contains("fan")) {
         userId = 2L;
@@ -108,26 +116,30 @@ public class StompChannelInterceptor implements ChannelInterceptor {
     }
 
     Matcher matcher = SUB_DEST_PATTERN.matcher(destination);
-    if (matcher.matches()) {
-      Long roomId = Long.valueOf(matcher.group(1));
-      String targetGroup = matcher.group(2);
-
-      if (principal.role() == ParticipantRole.FAN && !"artist".equals(targetGroup)) {
-        log.warn("WebSocket SUBSCRIBE 거부 - 팬은 /artist 대역만 구독할 수 있습니다. dest: {}", destination);
-        throw new AppException(ChatErrorCode.UNAUTHORIZED);
-      }
-      if (principal.role() == ParticipantRole.ARTIST && !"fan".equals(targetGroup)) {
-        log.warn("WebSocket SUBSCRIBE 거부 - 아티스트는 /fan 대역만 구독할 수 있습니다. dest: {}", destination);
-        throw new AppException(ChatErrorCode.UNAUTHORIZED);
-      }
-
-      try {
-        activeParticipantValidator.validate(roomId, principal.userId(), principal.role());
-      } catch (Exception e) {
-        log.info("테스트 환경 - 방 참여 자격 검증 패스: {}", e.getMessage());
-      }
-      log.info("WebSocket SUBSCRIBE 성공 - userId: {}, roomId: {}, destination: {}",
-          principal.userId(), roomId, destination);
+    if (!matcher.matches()) {
+      log.warn("WebSocket SUBSCRIBE 거부 - 올바르지 않은 구독 destination: {}", destination);
+      throw new AppException(ChatErrorCode.UNAUTHORIZED);
     }
+
+    Long roomId = Long.valueOf(matcher.group(1));
+    String targetGroup = matcher.group(2);
+
+    if (principal.role() == ParticipantRole.FAN && !"artist".equals(targetGroup)) {
+      log.warn("WebSocket SUBSCRIBE 거부 - 팬은 /artist 대역만 구독할 수 있습니다. dest: {}", destination);
+      throw new AppException(ChatErrorCode.UNAUTHORIZED);
+    }
+    if (principal.role() == ParticipantRole.ARTIST && !"fan".equals(targetGroup)) {
+      log.warn("WebSocket SUBSCRIBE 거부 - 아티스트는 /fan 대역만 구독할 수 있습니다. dest: {}", destination);
+      throw new AppException(ChatErrorCode.UNAUTHORIZED);
+    }
+
+    // TODO: 테스트용은 배포 전에 제거
+    try {
+      activeParticipantValidator.validate(roomId, principal.userId(), principal.role());
+    } catch (Exception e) {
+      log.info("테스트 환경 - 방 참여 자격 검증 패스: {}", e.getMessage());
+    }
+    log.info("WebSocket SUBSCRIBE 성공 - userId: {}, roomId: {}, destination: {}",
+        principal.userId(), roomId, destination);
   }
 }

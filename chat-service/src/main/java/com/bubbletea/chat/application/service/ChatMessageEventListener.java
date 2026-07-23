@@ -35,20 +35,20 @@ public class ChatMessageEventListener {
     if (role == ParticipantRole.ARTIST) {
       // 웹소켓 팬 대역 브로드캐스트
       messagingTemplate.convertAndSend("/sub/rooms/" + roomId + "/artist", responseDto);
-      
+
       List<ChatParticipant> participants = chatParticipantRepository.findAllByRoomIdAndStatus(
           roomId, ParticipantStatus.ACTIVE);
       String artistName = (event.nickname() != null) ? event.nickname() : "아티스트";
 
-      String eventId = KafkaEventIdConverter.convert(
-          "chat",
-          "CHAT_PUBLISHED",
-          event.savedMessage().getId(),
-          event.savedMessage().getCreatedAt()
-      );
-
       for (ChatParticipant cp : participants) {
         if (cp.getRole() == ParticipantRole.FAN) {
+          String eventId = KafkaEventIdConverter.convert(
+              "chat",
+              "CHAT_PUBLISHED",
+              cp.getUserId(),
+              event.savedMessage().getCreatedAt()
+          );
+
           chatEventPublisher.publish(ChatPublishedEvent.of(
               eventId,
               cp.getUserId(),
