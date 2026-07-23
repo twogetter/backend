@@ -50,13 +50,15 @@ class ChatMessageEventListenerTest {
         .roomId(roomId)
         .senderId(10L)
         .senderType(ParticipantRole.ARTIST)
-        .content("안녕하세요 여러분")
+        .content("여러분")
         .messageType(MessageType.TEXT)
         .build();
     org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "id", 100L);
-    org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "createdAt", LocalDateTime.now());
+    org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "createdAt",
+        LocalDateTime.now());
 
-    ChatMessageSavedEvent savedEvent = new ChatMessageSavedEvent(mockMessage, ParticipantRole.ARTIST, "아이돌A");
+    ChatMessageSavedEvent savedEvent = new ChatMessageSavedEvent(mockMessage,
+        ParticipantRole.ARTIST, "아이돌");
     ChatParticipant fanParticipant = ChatParticipant.createFanParticipant(roomId, 20L);
 
     when(chatParticipantRepository.findAllByRoomIdAndStatus(roomId, ParticipantStatus.ACTIVE))
@@ -66,12 +68,13 @@ class ChatMessageEventListenerTest {
     chatMessageEventListener.handleMessageSaved(savedEvent);
 
     // then
-    verify(messagingTemplate, times(1)).convertAndSend(eq("/sub/rooms/1/artist"), any(ChatMessageResponseDto.class));
+    verify(messagingTemplate, times(1)).convertAndSend(eq("/sub/rooms/1/artist"),
+        any(ChatMessageResponseDto.class));
     verify(chatEventPublisher, times(1)).publish(any(ChatPublishedEvent.class));
   }
 
   @Test
-  @DisplayName("팬 메시지 저장 이벤트 수신 시 아티스트 대역으로 격리 전송된다")
+  @DisplayName("팬 메시지 저장 이벤트 수신 시 아티스트 대역으로 전송된다")
   void handleMessageSaved_Fan_Success() {
     // given
     Long roomId = 1L;
@@ -79,18 +82,21 @@ class ChatMessageEventListenerTest {
         .roomId(roomId)
         .senderId(20L)
         .senderType(ParticipantRole.FAN)
-        .content("팬 메시지입니다")
+        .content("팬 메시지")
         .messageType(MessageType.TEXT)
         .build();
     org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "id", 101L);
-    org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "createdAt", LocalDateTime.now());
+    org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "createdAt",
+        LocalDateTime.now());
 
-    ChatMessageSavedEvent savedEvent = new ChatMessageSavedEvent(mockMessage, ParticipantRole.FAN, "팬클럽1");
+    ChatMessageSavedEvent savedEvent = new ChatMessageSavedEvent(mockMessage, ParticipantRole.FAN,
+        "팬");
 
     // when
     chatMessageEventListener.handleMessageSaved(savedEvent);
 
     // then
-    verify(messagingTemplate, times(1)).convertAndSend(eq("/sub/rooms/1/fan"), any(ChatMessageResponseDto.class));
+    verify(messagingTemplate, times(1)).convertAndSend(eq("/sub/rooms/1/fan"),
+        any(ChatMessageResponseDto.class));
   }
 }

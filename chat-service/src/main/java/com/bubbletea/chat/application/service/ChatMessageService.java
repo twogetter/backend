@@ -73,8 +73,7 @@ public class ChatMessageService {
     if (context != null) {
       nickname = context.nickname();
     }
-
-    // DB 트랜잭션 성공 후 커밋(AFTER_COMMIT) 시점에 웹소켓/카프카를 발행하도록 스프링 이벤트 발행
+    
     eventPublisher.publishEvent(new ChatMessageSavedEvent(savedMessage, role, nickname));
 
     return ChatMessageResponseDto.from(savedMessage);

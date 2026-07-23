@@ -17,10 +17,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-/**
- * DB 트랜잭션 커밋(AFTER_COMMIT)이 정상 완료된 직후에만
- * 웹소켓 브로드캐스트 및 Kafka 알림 이벤트를 안전하게 발행하는 이벤트 리스너입니다.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -37,11 +33,11 @@ public class ChatMessageEventListener {
     ChatMessageResponseDto responseDto = ChatMessageResponseDto.from(event.savedMessage());
 
     if (role == ParticipantRole.ARTIST) {
-      // 1. 웹소켓 팬 대역 브로드캐스트
+      // 웹소켓 팬 대역 브로드캐스트
       messagingTemplate.convertAndSend("/sub/rooms/" + roomId + "/artist", responseDto);
-
-      // 2. 해당 방의 액티브 참여자 조회하여 팬들에게 알림 이벤트 발행
-      List<ChatParticipant> participants = chatParticipantRepository.findAllByRoomIdAndStatus(roomId, ParticipantStatus.ACTIVE);
+      
+      List<ChatParticipant> participants = chatParticipantRepository.findAllByRoomIdAndStatus(
+          roomId, ParticipantStatus.ACTIVE);
       String artistName = (event.nickname() != null) ? event.nickname() : "아티스트";
 
       String eventId = KafkaEventIdConverter.convert(
