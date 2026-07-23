@@ -44,11 +44,10 @@ services:
       - mongo-data:/data/db
       - ./docker/mongo-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "mongosh --host localhost --port 27017 -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval \"db.adminCommand('ping')\" || exit 1"
-        ]
+      test: ["CMD-SHELL", "mongosh --host localhost --port 27017 
+      -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD 
+      --authenticationDatabase admin 
+      --eval \"db.adminCommand('ping')\" || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 10
