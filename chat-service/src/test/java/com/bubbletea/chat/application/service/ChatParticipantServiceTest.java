@@ -120,4 +120,85 @@ class ChatParticipantServiceTest {
     // Then
     verify(chatParticipantRepository, never()).findByRoomIdAndUserId(anyLong(), anyLong());
   }
+
+  @Test
+  @DisplayName("이미 활성화된 팬이 다시 입장하려고 하면 예외가 발생한다")
+  void save_DuplicateParticipant_ThrowsException() {
+    // Given
+    Long roomId = 1L;
+    Long fanId = 2L;
+    LocalDateTime startedAt = LocalDateTime.now();
+
+    ChatParticipant activeParticipant = ChatParticipant.createFanParticipant(roomId, fanId);
+    when(chatParticipantRepository.findByRoomIdAndUserId(roomId, fanId))
+        .thenReturn(Optional.of(activeParticipant));
+
+    // When & Then
+    org.assertj.core.api.Assertions.assertThatThrownBy(() -> chatParticipantService.save(roomId, fanId, startedAt))
+        .isInstanceOf(com.bubbletea.common.exception.AppException.class)
+        .hasFieldOrPropertyWithValue("errorCode", com.bubbletea.chat.domain.exception.ChatErrorCode.DUPLICATE_PARTICIPANT);
+  }
+
+  @Test
+  @DisplayName("비활성화된 팬이 다시 입장하면 활성화되고 구독 이력이 새로 생성된다")
+  void save_InactiveParticipant_ShouldReactivate() {
+    // Given
+    Long roomId = 1L;
+    Long fanId = 2L;
+    LocalDateTime startedAt = LocalDateTime.now();
+
+    ChatParticipant inactiveParticipant = ChatParticipant.createFanParticipant(roomId, fanId);
+    inactiveParticipant.deactivate();
+    ReflectionTestUtils.setField(inactiveParticipant, "id", 200L);
+
+    when(chatParticipantRepository.findByRoomIdAndUserId(roomId, fanId))
+        .thenReturn(Optional.of(inactiveParticipant));
+
+    // When
+    Long participantId = chatParticipantService.save(roomId, fanId, startedAt);
+
+    // Then
+    assertThat(participantId).isEqualTo(200L);
+    assertThat(inactiveParticipant.getStatus()).isEqualTo(ParticipantStatus.ACTIVE);
+
+    ArgumentCaptor<ChatPeriod> periodCaptor = ArgumentCaptor.forClass(ChatPeriod.class);
+    verify(chatPeriodRepository, times(1)).save(periodCaptor.capture());
+    assertThat(periodCaptor.getValue().getStartedAt()).isEqualTo(startedAt);
+  }
+
+  @Test
+  @DisplayName("참여자의 마지막 읽은 메시지 ID를 정상적으로 업데이트한다")
+  void updateLastReadId_Success() {
+    // Given
+    Long roomId = 1L;
+    Long fanId = 2L;
+    Long lastReadId = 50L;
+
+    ChatParticipant activeParticipant = ChatParticipant.createFanParticipant(roomId, fanId);
+    when(chatParticipantRepository.findByRoomIdAndUserId(roomId, fanId))
+        .thenReturn(Optional.of(activeParticipant));
+
+    // When
+    chatParticipantService.updateLastReadId(roomId, fanId, lastReadId);
+
+    // Then
+    assertThat(activeParticipant.getLastReadId()).isEqualTo(lastReadId);
+  }
+
+  @Test
+  @DisplayName("참여자가 존재하지 않거나 비활성화 상태에서 업데이트 시도 시 예외가 발생한다")
+  void updateLastReadId_ParticipantNotFound() {
+    // Given
+    Long roomId = 1L;
+    Long fanId = 2L;
+    Long lastReadId = 50L;
+
+    when(chatParticipantRepository.findByRoomIdAndUserId(roomId, fanId))
+        .thenReturn(Optional.empty());
+
+    // When & Then
+    org.assertj.core.api.Assertions.assertThatThrownBy(() -> chatParticipantService.updateLastReadId(roomId, fanId, lastReadId))
+        .isInstanceOf(com.bubbletea.common.exception.AppException.class)
+        .hasFieldOrPropertyWithValue("errorCode", com.bubbletea.chat.domain.exception.ChatErrorCode.PARTICIPANT_NOT_FOUND);
+  }
 }
