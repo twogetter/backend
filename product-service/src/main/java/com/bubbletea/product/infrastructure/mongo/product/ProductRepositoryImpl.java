@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class ProductRepositoryImpl implements ProductRepository {
+class ProductRepositoryImpl implements ProductRepository {
 
     private final ProductMongoRepository productMongoRepository;
     private final MongoTemplate mongoTemplate;

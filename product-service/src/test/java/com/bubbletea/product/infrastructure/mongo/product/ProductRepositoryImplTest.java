@@ -1,4 +1,4 @@
-package com.bubbletea.product.infrastructure.mongo;
+package com.bubbletea.product.infrastructure.mongo.product;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -7,7 +7,6 @@ import com.bubbletea.product.domain.product.ProductFixture;
 import com.bubbletea.product.domain.product.ProductListCondition;
 import com.bubbletea.product.domain.product.ProductRepository;
 import com.bubbletea.product.domain.product.ProductSearchCondition;
-import com.bubbletea.product.infrastructure.mongo.product.ProductRepositoryImpl;
 import com.bubbletea.product.support.MongoAuditingTestConfig;
 import com.bubbletea.product.support.ProductMongoOnlySupport;
 import java.time.LocalDateTime;
