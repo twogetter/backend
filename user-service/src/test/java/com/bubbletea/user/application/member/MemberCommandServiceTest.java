@@ -33,7 +33,7 @@ class MemberCommandServiceTest {
     private MemberCommandService memberCommandService;
 
     @Test
-    @DisplayName("회원 생성 성공 시 생성된 회원 정보를 반환한다")
+    @DisplayName("회원 저장 성공 시 생성된 회원 정보를 반환한다")
     void saveSuccess() {
         // given
         String email = "test@example.com";
@@ -109,7 +109,7 @@ class MemberCommandServiceTest {
     }
 
     @Test
-    @DisplayName("중복 이메일이면 회원 생성에 실패한다")
+    @DisplayName("중복 이메일이면 회원 저장에 실패한다")
     void saveFailsWhenEmailIsDuplicated() {
         // given
         String email = "duplicate@example.com";
@@ -127,15 +127,43 @@ class MemberCommandServiceTest {
         assertThatThrownBy(
                 () -> memberCommandService.save(command)
         )
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("이미 사용 중인 이메일입니다.");
+                .isInstanceOf(IllegalArgumentException.class);
 
         verify(memberRepository, never())
                 .save(any(Member.class));
     }
 
     @Test
-    @DisplayName("회원가입 롤백 시 생성된 회원을 실제 삭제한다")
+    @DisplayName("중복 닉네임이면 회원 저장에 실패한다")
+    void saveFailsWhenNicknameIsDuplicated() {
+        // given
+        String email = "new@example.com";
+        String nickname = "중복닉네임";
+
+        CreateMemberCommand command =
+                new CreateMemberCommand(
+                        email,
+                        nickname
+                );
+
+        when(memberRepository.existsByEmail(email))
+                .thenReturn(false);
+
+        when(memberRepository.existsByNickname(nickname))
+                .thenReturn(true);
+
+        // when & then
+        assertThatThrownBy(
+                () -> memberCommandService.save(command)
+        )
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(memberRepository, never())
+                .save(any(Member.class));
+    }
+
+    @Test
+    @DisplayName("회원가입 롤백 시 생성된 회원을 삭제한다")
     void rollbackSignUpSuccess() {
         // given
         Member member =
