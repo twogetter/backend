@@ -10,7 +10,7 @@
 
 ## 🤝 팀원
   
-|<img width=150 src="https://avatars.githubusercontent.com/u/105481797?v=4" />|<img width=150 src="https://avatars.githubusercontent.com/u/134791226?v=4" />|<img width=130 src="https://avatars.githubusercontent.com/u/119675297?v=4" />|<img width=150 src="https://avatars.githubusercontent.com/u/268832835?v=4" />|<img width=150 src="https://avatars.githubusercontent.com/u/141344997?v=4" />|<img width=150 src="https://avatars.githubusercontent.com/u/143821560?v=4" />|
+|<img width=150 alt="문시원 (팀장)" src="https://avatars.githubusercontent.com/u/105481797?v=4" />|<img width=150 alt="김재우 (부팀장)" src="https://avatars.githubusercontent.com/u/134791226?v=4" />|<img width=130 alt="신지훈" src="https://avatars.githubusercontent.com/u/119675297?v=4" />|<img width=150 alt="유창민" src="https://avatars.githubusercontent.com/u/268832835?v=4" />|<img width=150 alt="윤수현" src="https://avatars.githubusercontent.com/u/141344997?v=4" />|<img width=150 alt="차민혁" src="https://avatars.githubusercontent.com/u/143821560?v=4" />|
 | :---: | :---: | :---: | :---: | :---: | :---:|
 | 문시원 (팀장) | 김재우 (부팀장) | 신지훈 | 유창민 | 윤수현 | 차민혁 |
 | [@muncool39](https://github.com/muncool39) | [@J4E-mik](https://github.com/J4E-mik) | [@jihoon0413](https://github.com/jihoon0413) | [@dnwn3295-lgtm](https://github.com/dnwn3295-lgtm) | [@yS2h](https://github.com/yS2h) | [@Dev-Rutin](https://github.com/Dev-Rutin) |
@@ -71,7 +71,7 @@
 ### 전체 서비스 기본 실행 방법
 ```bash
 # 1. 저장소 클론
-git clone https://github.com/twogetter/backend.git
+git clone https://github.com/twogetter/backend.git bubbletea-backend
 cd bubbletea-backend
 
 # 2. .env 파일 설정
@@ -96,7 +96,8 @@ docker compose --profile local up --build -d
 ```
 ### 특정 서비스만 재빌드
 ```bash
-docker compose up --build -d [대상 서비스]
+# 예: auth-service만 재빌드
+docker compose up --build -d auth-service
 ```
 
 <br>
