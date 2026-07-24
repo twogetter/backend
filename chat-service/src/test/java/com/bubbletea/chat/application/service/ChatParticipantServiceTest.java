@@ -201,4 +201,24 @@ class ChatParticipantServiceTest {
         .isInstanceOf(com.bubbletea.common.exception.AppException.class)
         .hasFieldOrPropertyWithValue("errorCode", com.bubbletea.chat.domain.exception.ChatErrorCode.PARTICIPANT_NOT_FOUND);
   }
+
+  @Test
+  @DisplayName("비활성화 상태의 참여자 업데이트 시도 시 예외가 발생한다")
+  void updateLastReadId_InactiveParticipant_ThrowsException() {
+    // Given
+    Long roomId = 1L;
+    Long fanId = 2L;
+    Long lastReadId = 50L;
+
+    ChatParticipant inactiveParticipant = ChatParticipant.createFanParticipant(roomId, fanId);
+    inactiveParticipant.deactivate();
+
+    when(chatParticipantRepository.findByRoomIdAndUserId(roomId, fanId))
+        .thenReturn(Optional.of(inactiveParticipant));
+
+    // When & Then
+    org.assertj.core.api.Assertions.assertThatThrownBy(() -> chatParticipantService.updateLastReadId(roomId, fanId, lastReadId))
+        .isInstanceOf(com.bubbletea.common.exception.AppException.class)
+        .hasFieldOrPropertyWithValue("errorCode", com.bubbletea.chat.domain.exception.ChatErrorCode.PARTICIPANT_NOT_FOUND);
+  }
 }
