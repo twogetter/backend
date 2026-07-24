@@ -60,4 +60,79 @@ class PublicPathMatcherTest {
         // then
         assertFalse(result);
     }
+
+    @Test
+    @DisplayName("POST 회원가입 경로는 공개 요청으로 처리한다")
+    void signupPathIsPublic() {
+        MockServerWebExchange exchange =
+                MockServerWebExchange.from(
+                        MockServerHttpRequest
+                                .post("/api/auth/signup")
+                                .build()
+                );
+
+        assertTrue(
+                publicPathMatcher.isPublic(exchange)
+        );
+    }
+
+    @Test
+    @DisplayName("POST 로그인 경로는 공개 요청으로 처리한다")
+    void loginPathIsPublic() {
+        MockServerWebExchange exchange =
+                MockServerWebExchange.from(
+                        MockServerHttpRequest
+                                .post("/api/auth/login")
+                                .build()
+                );
+
+        assertTrue(
+                publicPathMatcher.isPublic(exchange)
+        );
+    }
+
+    @Test
+    @DisplayName("공개 경로와 URL이 같아도 HTTP Method가 다르면 보호 요청이다")
+    void publicPathWithDifferentMethodIsNotPublic() {
+        MockServerWebExchange exchange =
+                MockServerWebExchange.from(
+                        MockServerHttpRequest
+                                .get("/api/auth/login")
+                                .build()
+                );
+
+        assertFalse(
+                publicPathMatcher.isPublic(exchange)
+        );
+    }
+
+    @Test
+    @DisplayName("공개 경로와 비슷하지만 다른 경로는 보호 요청이다")
+    void similarButDifferentPathIsNotPublic() {
+        MockServerWebExchange exchange =
+                MockServerWebExchange.from(
+                        MockServerHttpRequest
+                                .post("/api/auth/login-fake")
+                                .build()
+                );
+
+        assertFalse(
+                publicPathMatcher.isPublic(exchange)
+        );
+    }
+
+    @Test
+    @DisplayName("일반 회원 API는 보호 요청으로 처리한다")
+    void protectedMemberPathIsNotPublic() {
+        MockServerWebExchange exchange =
+                MockServerWebExchange.from(
+                        MockServerHttpRequest
+                                .get("/api/members/1")
+                                .build()
+                );
+
+        assertFalse(
+                publicPathMatcher.isPublic(exchange)
+        );
+    }
 }
