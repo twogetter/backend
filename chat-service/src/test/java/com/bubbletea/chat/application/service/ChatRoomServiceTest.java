@@ -178,4 +178,48 @@ class ChatRoomServiceTest {
     // then
     assertThat(result).isEmpty();
   }
+
+  @Test
+  @DisplayName("DataIntegrityViolationException 발생 시 uk_chat_rooms_artist_id가 원인이 아니면 예외를 다시 던진다")
+  void createChatRoom_OtherDataIntegrityViolation_ThrowsException() {
+    // given
+    Long artistId = 1L;
+    DataIntegrityViolationException ex = new DataIntegrityViolationException("Other violation",
+        new RuntimeException("some_other_constraint"));
+    when(chatRoomWriter.create(artistId)).thenThrow(ex);
+
+    // when & then
+    org.assertj.core.api.Assertions.assertThatThrownBy(() -> chatRoomService.createChatRoom(artistId))
+        .isInstanceOf(DataIntegrityViolationException.class)
+        .hasMessageContaining("Other violation");
+  }
+
+  @Test
+  @DisplayName("아티스트 ID로 채팅방을 정상 조회한다")
+  void getChatRoomByArtistId_Success() {
+    // given
+    Long artistId = 1L;
+    ChatRoom room = ChatRoom.create(artistId);
+    when(chatRoomRepository.findByArtistId(artistId)).thenReturn(java.util.Optional.of(room));
+
+    // when
+    ChatRoom result = chatRoomService.getChatRoomByArtistId(artistId);
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.getArtistId()).isEqualTo(artistId);
+  }
+
+  @Test
+  @DisplayName("아티스트 ID로 채팅방 조회 시 없으면 예외가 발생한다")
+  void getChatRoomByArtistId_NotFound() {
+    // given
+    Long artistId = 1L;
+    when(chatRoomRepository.findByArtistId(artistId)).thenReturn(java.util.Optional.empty());
+
+    // when & then
+    org.assertj.core.api.Assertions.assertThatThrownBy(() -> chatRoomService.getChatRoomByArtistId(artistId))
+        .isInstanceOf(com.bubbletea.common.exception.AppException.class)
+        .hasFieldOrPropertyWithValue("errorCode", com.bubbletea.chat.domain.exception.ChatErrorCode.CHAT_ROOM_NOT_FOUND);
+  }
 }
