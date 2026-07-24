@@ -259,7 +259,7 @@ public class ProductQueryServiceTest {
         void existingProductId_returnsDetailDto() {
             // given
             String productId = "product-1";
-            Product product = ProductFixture.createDefault();
+            Product product = ProductFixture.createDefaultMock();
 
             given(productRepository.findActiveProductById(productId))
                 .willReturn(Optional.of(product));
@@ -298,7 +298,7 @@ public class ProductQueryServiceTest {
         void existingPid_returnsDetailDto() {
             // given
             Long pid = 1L;
-            Product product = ProductFixture.createDefault();
+            Product product = ProductFixture.createDefaultMock();
 
             given(productRepository.findByPid(pid))
                 .willReturn(Optional.of(product));
