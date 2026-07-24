@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,7 +28,7 @@ class MemberQueryServiceTest {
     private MemberQueryService memberQueryService;
 
     @Test
-    @DisplayName("활성 회원 인증 정보에는 닉네임과 로그인 가능 여부를 반환한다")
+    @DisplayName("활성 회원의 인증 정보는 로그인 가능 상태를 반환한다")
     void getAuthInfoSuccess() {
         // given
         Member member =
@@ -110,5 +111,61 @@ class MemberQueryServiceTest {
 
         assertThat(result.loginAvailable())
                 .isFalse();
+    }
+
+    @Test
+    @DisplayName("탈퇴 회원은 로그인 불가능 상태를 반환한다")
+    void withdrawnMemberIsNotLoginAvailable() {
+        // given
+        Member member =
+                org.mockito.Mockito.mock(Member.class);
+
+        when(memberRepository.findById(3L))
+                .thenReturn(Optional.of(member));
+
+        when(member.getId())
+                .thenReturn(3L);
+
+        when(member.getEmail())
+                .thenReturn("withdrawn@example.com");
+
+        when(member.getNickname())
+                .thenReturn("탈퇴회원");
+
+        when(member.getRole())
+                .thenReturn(MemberRole.USER);
+
+        when(member.getStatus())
+                .thenReturn(MemberStatus.WITHDRAWN);
+
+        // when
+        MemberAuthInfoResult result =
+                memberQueryService.getAuthInfo(3L);
+
+        // then
+        assertThat(result.status())
+                .isEqualTo("WITHDRAWN");
+
+        assertThat(result.loginAvailable())
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 회원의 인증 정보를 조회하면 실패한다")
+    void getAuthInfoFailsWhenMemberDoesNotExist() {
+        // given
+        Long memberId = 999L;
+
+        when(memberRepository.findById(memberId))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(
+                () -> memberQueryService.getAuthInfo(memberId)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(
+                        String.valueOf(memberId)
+                );
     }
 }

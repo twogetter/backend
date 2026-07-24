@@ -23,14 +23,22 @@ dependencies {
 
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+
+    // 테스트용 인메모리 DB
     testRuntimeOnly 'com.h2database:h2'
+
+    // JUnit 실행 런처
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
 
-    // 테스트에서는 실제 Config Server import를 사용하지 않는다.
+    /*
+     * 테스트에서는 실제 Config Server import를 사용하지 않는다.
+     * 로컬 Config Server가 실행 중이지 않아도 테스트가 가능하도록 한다.
+     */
     systemProperty(
             'spring.config.import',
             'optional:file:./user-service-test.properties'
