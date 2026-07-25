@@ -7,8 +7,13 @@ import lombok.Builder;
 public record BrandpayAuthDetailResponseDto(
         Long userId,
         String customerKey,
-        List<PaymentMethodDto> cards
+        List<PaymentMethodDto> cards,
+        String clientKey,
+        String redirectUrl
 ) {
+    public BrandpayAuthDetailResponseDto(Long userId, String customerKey, List<PaymentMethodDto> cards) {
+        this(userId, customerKey, cards, null, null);
+    }
 
     @Builder
     public record PaymentMethodDto(

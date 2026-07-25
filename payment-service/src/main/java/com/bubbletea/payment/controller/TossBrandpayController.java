@@ -13,16 +13,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
-@Controller
+@RestController
 @RequiredArgsConstructor
 @RequestMapping("/brandpay")
 public class TossBrandpayController {
@@ -41,17 +41,6 @@ private final PaymentConfirmFacade paymentConfirmFacade;
                 "tossMethodId", tossMethodId
         ));
     }
-
-//    @PostMapping("/payments/ready2")
-//    public ResponseEntity<Map<String, String>> readyPayment2(
-//            @RequestHeader("X-User-Id") Long userId,
-//            @RequestBody PaymentReadyRequestDto dto) {
-////        String tossMethodId = paymentConfirmFacade.ready(dto, userId);
-//
-//        return ResponseEntity.ok(Map.of(
-//                "status", "SUCCESS"
-//        ));
-//    }
 
     @PostMapping("/webhooks/toss-brandpay")
     public ResponseEntity<String> handleTossWebhook(
