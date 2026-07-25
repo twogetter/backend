@@ -50,6 +50,7 @@ public class PaymentAuthController {
                 info.userId(),
                 info.customerKey(),
                 info.cards(),
+                info.billingAgreed(),
                 CLIENT_KEY,
                 REDIRECT_URL
         );

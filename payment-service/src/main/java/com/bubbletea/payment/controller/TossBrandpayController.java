@@ -6,10 +6,10 @@ import com.bubbletea.payment.facade.PaymentConfirmFacade;
 import com.bubbletea.payment.service.BrandpayService;
 import com.bubbletea.payment.service.dto.ConnectBrandpayRequestDto;
 import com.bubbletea.payment.service.dto.ConnectBrandpayResponseDto;
+import com.bubbletea.payment.service.dto.BrandpayReadyResponseDto;
 import com.bubbletea.payment.service.dto.PaymentReadyRequestDto;
 import com.bubbletea.payment.service.dto.TossBillingChangeStatusRequestDto;
 import com.bubbletea.payment.service.dto.TossWebhookRequestDto;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
@@ -33,15 +33,12 @@ public class TossBrandpayController {
 private final PaymentConfirmFacade paymentConfirmFacade;
 
     @PostMapping("/payments/ready")
-    public ResponseEntity<Map<String, String>> readyPayment(
+    public ApiResponse<BrandpayReadyResponseDto> readyPayment(
             @RequestHeader("X-User-Id") Long userId,
             @RequestBody PaymentReadyRequestDto dto) {
         String tossMethodId = paymentConfirmFacade.ready(dto, userId);
 
-        return ResponseEntity.ok(Map.of(
-                "status", "SUCCESS",
-                "tossMethodId", tossMethodId
-        ));
+        return ApiResponse.success(new BrandpayReadyResponseDto(tossMethodId));
     }
 
     @PostMapping("/webhooks/toss-brandpay")

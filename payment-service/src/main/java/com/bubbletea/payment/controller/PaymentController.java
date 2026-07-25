@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
+@RequestMapping("/api/payments")
 @RequiredArgsConstructor
-@RequestMapping
 public class PaymentController {
 
     private final PaymentConfirmFacade paymentConfirmFacade;
@@ -28,7 +28,7 @@ public class PaymentController {
         return ApiResponse.success(dto.amount() + "원 결제가 완료되었습니다.");
     }
 
-    @PostMapping("/payments/cancel")
+    @PostMapping("/cancel")
     public ApiResponse<String> requestCancel(
             @RequestHeader("X-User-Id") Long userId,
             @RequestBody PaymentCancelRequestDto dto) {
