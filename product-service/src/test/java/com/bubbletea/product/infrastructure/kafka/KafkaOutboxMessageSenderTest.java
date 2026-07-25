@@ -102,13 +102,16 @@ public class KafkaOutboxMessageSenderTest {
             given(outboxKafkaTemplate.send(any(Message.class))).willReturn(mockFuture);
 
             // when & then
-            assertThatThrownBy(() -> kafkaOutboxMessageSender.send(TOPIC, PAYLOAD, HEADERS))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Kafka 발행 중단")
-                .hasMessageContaining(TOPIC);
+            try {
+                assertThatThrownBy(() -> kafkaOutboxMessageSender.send(TOPIC, PAYLOAD, HEADERS))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Kafka 발행 중단")
+                    .hasMessageContaining(TOPIC);
 
-            assertThat(Thread.currentThread().isInterrupted()).isTrue();
-            Thread.interrupted();
+                assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            } finally {
+                Thread.interrupted();
+            }
         }
 
         @Test
