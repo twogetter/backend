@@ -1,0 +1,36 @@
+# 통합 테스트 전용 설정.
+# spring.config.name=order-it (테스트 클래스에서 지정)로 이 파일만 로드하고
+# 메인 application.yaml(비-optional configserver import)은 로드하지 않는다.
+# datasource·kafka.bootstrap-servers 는 Testcontainers 가 @DynamicPropertySource 로 주입한다.
+spring:
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+    # 서비스 디스커버리를 Eureka 대신 정적 인스턴스로 대체한다.
+    # 실제 URI(WireMock 동적 포트)는 OrderIntegrationTestSupport 가 주입한다.
+    discovery:
+      client:
+        simple:
+          instances:
+            user-service:
+              - uri: http://localhost:0
+            product-service:
+              - uri: http://localhost:0
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+order:
+  outbox:
+    # 테스트 중 릴레이 스케줄러가 발화하지 않도록 크게 둔다.
+    # 아웃박스 적재(PENDING) 자체를 검증하고, 발행은 별도로 다루기 위함.
+    relay-delay-ms: 3600000

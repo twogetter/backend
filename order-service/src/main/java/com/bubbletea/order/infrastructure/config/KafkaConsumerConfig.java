@@ -8,6 +8,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
@@ -17,7 +18,11 @@ import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
  * payment-service의 결제 결과({@code PaymentResultEvent}) 소비 설정.
  * payment 프로듀서가 {@code JacksonJsonSerializer}(타입 헤더 미포함)로 발행하므로,
  * 역직렬화 대상 타입을 명시해 헤더 없이도 매핑되게 한다.
+ *
+ * <p>{@code @EnableKafka} 가 없으면 {@code @KafkaListener}(PaymentResultConsumer)가
+ * 활성화되지 않아 결제 결과 소비 전체가 동작하지 않는다(구독 활성화·실패 처리 누락).
  */
+@EnableKafka
 @Configuration
 public class KafkaConsumerConfig {
 
