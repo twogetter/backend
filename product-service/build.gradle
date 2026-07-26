@@ -32,11 +32,18 @@ jacocoTestReport {
     }
 
     classDirectories.setFrom(
-            files(classDirectories.files.collect { dir ->
-                fileTree(dir: dir, include: [
-                        '**/application/**',
-                        '**/domain/**'
-                ])
+            files(classDirectories.files.collect { File dir ->
+                dir.exists() ? project.fileTree(dir) {
+                    include(
+                            '**/application/**',
+                            '**/domain/**',
+                            '**/infrastructure/**'
+                    )
+                    exclude(
+                            '**/*Config.class',
+                            '**/*Configuration.class'
+                    )
+                } : project.files()
             })
     )
 }
@@ -48,7 +55,14 @@ jacocoTestCoverageVerification {
 
             includes = [
                     '*.application.*',
-                    '*.domain.*'
+                    '*.domain.*',
+                    '*.domain.*',
+                    '*.infrastructure.*'
+            ]
+
+            excludes = [
+                    '*.*Config',
+                    '*.*Configuration'
             ]
 
             limit {

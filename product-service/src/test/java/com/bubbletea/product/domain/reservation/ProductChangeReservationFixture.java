@@ -16,14 +16,26 @@ public class ProductChangeReservationFixture {
     public static final LocalDateTime DEFAULT_OPEN_DATE =
         LocalDateTime.of(2026, 7, 23, 12, 0);
 
-    /**
-     * 삭제 예약 생성
-     */
+
     public static ProductChangeReservation deletion() {
         return ProductChangeReservation.ofDeletion(
             DEFAULT_PRODUCT_ID,
             DEFAULT_DELETION_DATE
         );
+    }
+
+    public static ProductChangeReservation createByCommandType(
+        ReservationCommandType commandType, LocalDateTime scheduledAt
+    ) {
+        return switch (commandType) {
+            case ACTIVATE -> ProductChangeReservation.ofActivate(DEFAULT_PRODUCT_ID, scheduledAt);
+            case DELETION -> ProductChangeReservation.ofDeletion(DEFAULT_PRODUCT_ID, scheduledAt);
+            case NOTIFY_OPEN_SCHEDULE -> ProductChangeReservation.ofNotifyOpenSchedule(
+                DEFAULT_PRODUCT_ID, scheduledAt, DEFAULT_PRODUCT_NAME, scheduledAt.plusDays(3));
+            case NOTIFY_DELETION_SCHEDULE -> ProductChangeReservation.ofNotifyDeletionSchedule(
+                DEFAULT_PRODUCT_ID, scheduledAt, DEFAULT_PRODUCT_NAME, scheduledAt.plusDays(3));
+            default -> throw new IllegalArgumentException("지원하지 않는 commandType: " + commandType);
+        };
     }
 
     public static ProductChangeReservation deletion(
@@ -32,49 +44,6 @@ public class ProductChangeReservationFixture {
         return ProductChangeReservation.ofDeletion(productId, deletionDate);
     }
 
-    /**
-     * 삭제 일정 알림 예약 생성
-     */
-    public static ProductChangeReservation notifyDeletionSchedule() {
-        return ProductChangeReservation.ofNotifyDeletionSchedule(
-            DEFAULT_PRODUCT_ID,
-            DEFAULT_NOTIFY_AT,
-            DEFAULT_PRODUCT_NAME,
-            DEFAULT_DELETION_DATE
-        );
-    }
-
-    public static ProductChangeReservation notifyDeletionSchedule(
-        String productId, LocalDateTime notifyAt,
-        String productName, LocalDateTime deletionDate
-    ) {
-        return ProductChangeReservation.ofNotifyDeletionSchedule(
-            productId, notifyAt, productName, deletionDate);
-    }
-
-    /**
-     * 오픈 일정 알림 예약 생성
-     */
-    public static ProductChangeReservation notifyOpenSchedule() {
-        return ProductChangeReservation.ofNotifyOpenSchedule(
-            DEFAULT_PRODUCT_ID,
-            DEFAULT_NOTIFY_AT,
-            DEFAULT_PRODUCT_NAME,
-            DEFAULT_OPEN_DATE
-        );
-    }
-
-    public static ProductChangeReservation notifyOpenSchedule(
-        String productId, LocalDateTime notifyAt,
-        String productName, LocalDateTime openDate
-    ) {
-        return ProductChangeReservation.ofNotifyOpenSchedule(
-            productId, notifyAt, productName, openDate);
-    }
-
-    /**
-     * 활성화 예약 생성
-     */
     public static ProductChangeReservation activate() {
         return ProductChangeReservation.ofActivate(
             DEFAULT_PRODUCT_ID,

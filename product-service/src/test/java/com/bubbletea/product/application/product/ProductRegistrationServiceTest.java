@@ -78,7 +78,7 @@ class ProductRegistrationServiceTest {
         void validRequest_savesProductAndReturnsDto() {
             // given
             Long artistId = 1L;
-            Product savedProduct = ProductFixture.create(artistId, VALID_OPEN_DATE);
+            Product savedProduct = ProductFixture.createMock(artistId, VALID_OPEN_DATE);
             ProductRegisterRequestDto request = createFullRequest(
                 artistId, "아티스트1", "아이돌", VALID_OPEN_DATE
             );
@@ -104,7 +104,7 @@ class ProductRegistrationServiceTest {
             LocalDateTime openDate = LocalDateTime.now().plusDays(30);
             LocalDateTime expectedNotifyAt = openDate.minusDays(3);
 
-            Product savedProduct = ProductFixture.create(artistId, openDate);
+            Product savedProduct = ProductFixture.createMock(artistId, openDate);
             ProductRegisterRequestDto request = createFullRequest(
                 artistId, "아티스트1", "아이돌", openDate
             );
@@ -149,7 +149,7 @@ class ProductRegistrationServiceTest {
         void validRequest_publishesChatEvent() {
             // given
             Long artistId = 1L;
-            Product savedProduct = ProductFixture.create(artistId, VALID_OPEN_DATE);
+            Product savedProduct = ProductFixture.createMock(artistId, VALID_OPEN_DATE);
             ProductRegisterRequestDto request = createFullRequest(
                 artistId, "아티스트1", "아이돌", VALID_OPEN_DATE
             );
@@ -175,7 +175,7 @@ class ProductRegistrationServiceTest {
         void validRequest_idempotencyKeyFormat() {
             // given
             Long artistId = 1L;
-            Product savedProduct = ProductFixture.create(artistId, VALID_OPEN_DATE);
+            Product savedProduct = ProductFixture.createMock(artistId, VALID_OPEN_DATE);
             ProductRegisterRequestDto request = createFullRequest(
                 artistId, "아티스트1", "아이돌", VALID_OPEN_DATE
             );
@@ -226,7 +226,7 @@ class ProductRegistrationServiceTest {
             LocalDateTime openDate = LocalDateTime.now().plusDays(30);
             LocalDateTime expectedNotifyAt = openDate.minusDays(3);
 
-            Product savedProduct = ProductFixture.create(artistId, openDate);
+            Product savedProduct = ProductFixture.createMock(artistId, openDate);
             ProductRegisterRequestDto request = createFullRequest(
                 artistId, "아티스트1", "아이돌", openDate
             );

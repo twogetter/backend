@@ -18,10 +18,24 @@ public class ProductFixture {
     public static final LocalDateTime DEFAULT_CREATED_AT = LocalDateTime.now();
 
 
-    public static Product createDefault() {
-        Product product =  create(DEFAULT_ID, DEFAULT_ARTIST_ID, DEFAULT_ARTIST_NAME, DEFAULT_GROUP_NAME);
+    public static Product createDefaultMock() {
+        Product product = Product.schedule(
+            DEFAULT_ARTIST_ID,
+            DEFAULT_ARTIST_NAME,
+            DEFAULT_GROUP_NAME,
+            DEFAULT_DESCRIPTION,
+            DEFAULT_IMAGE_URL,
+            DEFAULT_PRICE,
+            DEFAULT_OPEN_DATE
+        );
         injectBaseFields(product, DEFAULT_ID);
         return product;
+    }
+
+    public static Product createDefault() {
+        return Product.schedule(
+            DEFAULT_ARTIST_ID, DEFAULT_ARTIST_NAME, DEFAULT_GROUP_NAME,
+            DEFAULT_DESCRIPTION, DEFAULT_IMAGE_URL, DEFAULT_PRICE, DEFAULT_OPEN_DATE);
     }
 
     public static Product create(String id, String artistName, String groupName) {
@@ -38,29 +52,7 @@ public class ProductFixture {
         return product;
     }
 
-    /**
-     * id, artistId, artistName, groupName 지정
-     */
-    public static Product create(
-        String id, Long artistId, String artistName, String groupName
-    ) {
-        Product product = Product.schedule(
-            artistId,
-            artistName,
-            groupName,
-            DEFAULT_DESCRIPTION,
-            DEFAULT_IMAGE_URL,
-            DEFAULT_PRICE,
-            DEFAULT_OPEN_DATE
-        );
-        injectBaseFields(product, id);
-        return product;
-    }
-
-    /**
-     * artistId, openDate 지정 (예약 스케줄 테스트용)
-     */
-    public static Product create(Long artistId, LocalDateTime openDate) {
+    public static Product createMock(Long artistId, LocalDateTime openDate) {
         Product product = Product.schedule(
             artistId,
             DEFAULT_ARTIST_NAME,
@@ -74,54 +66,46 @@ public class ProductFixture {
         return product;
     }
 
-    /**
-     * 모든 필드 직접 지정
-     */
-    public static Product create(
-        String id, Long artistId, String artistName, String groupName,
-        String description, String imageUrl, long price, LocalDateTime openDate
+    public static Product createDefaultByArtistInfo(
+        Long artistId, String artistName, String groupName, LocalDateTime openDate
+    ) {
+        return Product.schedule(
+            artistId,
+            artistName,
+            groupName,
+            DEFAULT_DESCRIPTION,
+            DEFAULT_IMAGE_URL,
+            DEFAULT_PRICE,
+            openDate
+        );
+    }
+
+    public static Product createActiveByArtistInfo(
+        Long artistId, String artistName, String groupName, LocalDateTime openDate
     ) {
         Product product = Product.schedule(
-            artistId, artistName, groupName, description, imageUrl, price, openDate
-        );
-        ReflectionTestUtils.setField(product, "id", id);
-        return product;
-    }
-
-    /**
-     * ACTIVE 상태의 Product 생성 (activate() 도메인 메서드를 직접 호출해서 실제 상태 전이 반영)
-     */
-    public static Product createActive() {
-        Product product = create(
-            DEFAULT_ID, DEFAULT_ARTIST_ID, DEFAULT_ARTIST_NAME, DEFAULT_GROUP_NAME
+            artistId,
+            artistName,
+            groupName,
+            DEFAULT_DESCRIPTION,
+            DEFAULT_IMAGE_URL,
+            DEFAULT_PRICE,
+            openDate
         );
         product.activate();
         return product;
     }
 
-    public static Product createActive(String id, String artistName, String groupName) {
-        Product product = create(id, artistName, groupName);
-        product.activate();
-        return product;
-    }
-
-    /**
-     * INACTIVE 상태의 Product 생성
-     */
-    public static Product createInactive() {
-        Product product = create(
-            DEFAULT_ID, DEFAULT_ARTIST_ID, DEFAULT_ARTIST_NAME, DEFAULT_GROUP_NAME
-        );
-        product.deactivate();
-        return product;
-    }
-
-    /**
-     * 삭제된 Product 생성
-     */
-    public static Product createDeleted() {
-        Product product = create(
-            DEFAULT_ID, DEFAULT_ARTIST_ID, DEFAULT_ARTIST_NAME, DEFAULT_GROUP_NAME
+    public static Product createDeletedByArtistInfo(
+        Long artistId, String artistName, String groupName, LocalDateTime openDate) {
+        Product product = Product.schedule(
+            artistId,
+            artistName,
+            groupName,
+            DEFAULT_DESCRIPTION,
+            DEFAULT_IMAGE_URL,
+            DEFAULT_PRICE,
+            openDate
         );
         product.markDeleted();
         return product;
