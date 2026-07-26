@@ -35,6 +35,9 @@ class ChatMessageEventListenerTest extends ChatIntegrationTestSupport {
   @Autowired
   private ChatParticipantRepository chatParticipantRepository;
 
+  @Autowired
+  private com.bubbletea.chat.domain.repository.ChatMessageRepository chatMessageRepository;
+
   @MockitoBean
   private SimpMessagingTemplate messagingTemplate;
 
@@ -66,6 +69,7 @@ class ChatMessageEventListenerTest extends ChatIntegrationTestSupport {
 
   @AfterEach
   void tearDown() {
+    chatMessageRepository.deleteAllInBatch();
     chatParticipantRepository.deleteAllInBatch();
     chatRoomRepository.deleteAllInBatch();
   }

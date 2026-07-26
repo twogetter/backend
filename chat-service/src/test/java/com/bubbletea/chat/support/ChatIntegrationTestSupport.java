@@ -12,7 +12,6 @@ import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest
-@Testcontainers(disabledWithoutDocker = true)
 public abstract class ChatIntegrationTestSupport
     implements PostgresTestContainer, KafkaTestContainer {
 
