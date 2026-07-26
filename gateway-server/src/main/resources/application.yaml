@@ -47,7 +47,7 @@ spring:
             - id: chat-service
               uri: lb://CHAT-SERVICE
               predicates:
-                - Path=/api/chat/**
+                - Path=/api/chats/**
 
 eureka:
   client:
