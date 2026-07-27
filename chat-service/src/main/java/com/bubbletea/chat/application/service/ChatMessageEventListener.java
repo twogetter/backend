@@ -45,7 +45,7 @@ public class ChatMessageEventListener {
           String eventId = KafkaEventIdConverter.convert(
               "chat",
               "CHAT_PUBLISHED",
-              cp.getUserId(),
+              event.savedMessage().getId(),
               event.savedMessage().getCreatedAt()
           );
 
