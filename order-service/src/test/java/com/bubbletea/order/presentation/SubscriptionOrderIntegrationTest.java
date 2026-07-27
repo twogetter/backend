@@ -136,6 +136,67 @@ class SubscriptionOrderIntegrationTest extends OrderIntegrationTestSupport {
   }
 
   @Test
+  @DisplayName("중복 구독: 멱등키가 달라도 이미 점유 중인 상품이면 409 로 거절하고 주문을 만들지 않는다")
+  void createSubscription_duplicateProduct() throws Exception {
+    stubMemberValid(MEMBER_ID);
+    stubProduct(PRODUCT_ID, "아이유 구독권", 9900L, "ACTIVE", PRODUCT_ID);
+
+    mockMvc.perform(post(URL)
+            .header("X-User-Id", MEMBER_ID)
+            .header("Idempotency-Key", "idem-dupsub-1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body(PRODUCT_ID, METHOD_ID)))
+        .andExpect(status().isAccepted());
+
+    // 다른 창/기기에서의 재시도를 모사 — 멱등키가 다르므로 멱등 fast-path 로는 막히지 않는다.
+    mockMvc.perform(post(URL)
+            .header("X-User-Id", MEMBER_ID)
+            .header("Idempotency-Key", "idem-dupsub-2")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body(PRODUCT_ID, METHOD_ID)))
+        .andExpect(status().isConflict());
+
+    assertThat(subscriptionRepository.count()).isEqualTo(1);
+    assertThat(subscriptionOrderRepository.count()).isEqualTo(1);
+    // 선검사에서 걸러지므로 두 번째 요청은 멱등키를 남기지 않는다
+    assertThat(idempotencyKeyRepository.count()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("중복 구독: 해지(소프트 삭제)된 구독은 점유로 보지 않아 재구독이 허용된다")
+  void createSubscription_allowsResubscribeAfterCancel() throws Exception {
+    stubMemberValid(MEMBER_ID);
+    stubProduct(PRODUCT_ID, "아이유 구독권", 9900L, "ACTIVE", PRODUCT_ID);
+
+    MvcResult created = mockMvc.perform(post(URL)
+            .header("X-User-Id", MEMBER_ID)
+            .header("Idempotency-Key", "idem-resub-1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body(PRODUCT_ID, METHOD_ID)))
+        .andExpect(status().isAccepted())
+        .andReturn();
+
+    // 신규 구독 결제 실패 → 구독/스케줄/주문이 소프트 삭제되는 보상 경로를 그대로 태운다.
+    long orderId = orderId(created);
+    kafkaTemplate.send(OrderKafkaTopic.PAYMENT_RESULT_FAILED, String.valueOf(orderId),
+        new PaymentResultEvent(orderId, 999L, BigDecimal.valueOf(9900), "",
+            PaymentResultEvent.STATUS_FAILED, "카드 한도 초과"));
+
+    await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(500))
+        .untilAsserted(() -> assertThat(subscriptionRepository.count()).isZero());
+
+    // 취소분은 부분 유니크 인덱스(deleted_at IS NULL)에서 빠지므로 같은 상품을 다시 구독할 수 있다.
+    mockMvc.perform(post(URL)
+            .header("X-User-Id", MEMBER_ID)
+            .header("Idempotency-Key", "idem-resub-2")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body(PRODUCT_ID, METHOD_ID)))
+        .andExpect(status().isAccepted());
+
+    assertThat(subscriptionRepository.count()).isEqualTo(1);
+  }
+
+  @Test
   @DisplayName("상품 없음: product-service 404 이면 주문이 생성되지 않는다(FeignException 전파)")
   void createSubscription_productNotFound() {
     stubMemberValid(MEMBER_ID);

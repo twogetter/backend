@@ -9,6 +9,8 @@ import com.bubbletea.commontest.container.PostgresTestContainer;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -49,9 +51,37 @@ public abstract class OrderIntegrationTestSupport
         WIREMOCK::baseUrl);
   }
 
+  /** 스키마 이름은 {@code order-service/src/main/resources/db/subscription-unique-index.sql} 와 일치시킨다. */
+  private static final String SUBSCRIPTION_UNIQUE_INDEX = """
+      CREATE UNIQUE INDEX IF NOT EXISTS uk_subscription_member_product_active
+        ON subscriptions (member_id, product_id) WHERE deleted_at IS NULL
+      """;
+
+  private static final String TRUNCATE_ALL = """
+      TRUNCATE TABLE payment_attempts, subscription_order, billing_schedules,
+                     subscriptions, idempotency_keys, outbox_events
+      RESTART IDENTITY CASCADE
+      """;
+
+  @Autowired
+  private JdbcTemplate jdbcTemplate;
+
   @BeforeEach
   void resetWireMock() {
     WIREMOCK.resetAll();
+  }
+
+  /**
+   * 컨텍스트(=Postgres 컨테이너)를 테스트끼리 공유하므로 매 테스트마다 도메인 테이블을 비운다.
+   * 비우지 않으면 이전 테스트가 남긴 구독이 중복 구독 검증에 걸려 뒤 테스트가 409 로 실패한다.
+   *
+   * <p>부분 유니크 인덱스는 JPA(ddl-auto)로 생성되지 않으므로 여기서 함께 만들어,
+   * 운영 스키마와 동일한 제약 위에서 테스트가 돌게 한다.
+   */
+  @BeforeEach
+  void resetDatabase() {
+    jdbcTemplate.execute(TRUNCATE_ALL);
+    jdbcTemplate.execute(SUBSCRIPTION_UNIQUE_INDEX);
   }
 
   // ── 스텁 헬퍼 ─────────────────────────────────────────────
