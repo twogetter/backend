@@ -1,10 +1,7 @@
 # 🧋 BUBBLETEA Backend
 
 > **커머스+메신저: 구독형 팬&아티스트 소통 플랫폼**
-> 월간 구독권 및 아티스트별 상품 로직을 결합한 
-> 커머스-메신저 통합 플랫폼
-
-
+> 월간 구독권 및 아티스트별 상품 로직을 결합한 커머스-메신저 통합 플랫폼
 
 > **🗓️ MVP 개발 기간:**  `2026.06.29 ~ 2026.07.27`
 
@@ -53,12 +50,6 @@
 </p>
 
 <br>
-
-<p align="center">
-  
-  <img width="900" alt="aws" src="https://github.com/user-attachments/assets/89ad0bc2-130c-40cc-90e8-ae551734abc1" />
-
-</p>
 
 <br>
 
