@@ -1,28 +1,30 @@
 package com.bubbletea.payment.controller;
 
+import com.bubbletea.common.response.ApiResponse;
 import com.bubbletea.payment.global.exception.PaymentSystemException;
 import com.bubbletea.payment.facade.PaymentConfirmFacade;
 import com.bubbletea.payment.service.BrandpayService;
 import com.bubbletea.payment.service.dto.ConnectBrandpayRequestDto;
 import com.bubbletea.payment.service.dto.ConnectBrandpayResponseDto;
+import com.bubbletea.payment.service.dto.BrandpayReadyResponseDto;
 import com.bubbletea.payment.service.dto.PaymentReadyRequestDto;
 import com.bubbletea.payment.service.dto.TossBillingChangeStatusRequestDto;
 import com.bubbletea.payment.service.dto.TossWebhookRequestDto;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
-@Controller
+@RestController
 @RequiredArgsConstructor
 @RequestMapping("/brandpay")
 public class TossBrandpayController {
@@ -31,27 +33,13 @@ public class TossBrandpayController {
 private final PaymentConfirmFacade paymentConfirmFacade;
 
     @PostMapping("/payments/ready")
-    public ResponseEntity<Map<String, String>> readyPayment(
+    public ApiResponse<BrandpayReadyResponseDto> readyPayment(
             @RequestHeader("X-User-Id") Long userId,
             @RequestBody PaymentReadyRequestDto dto) {
         String tossMethodId = paymentConfirmFacade.ready(dto, userId);
 
-        return ResponseEntity.ok(Map.of(
-                "status", "SUCCESS",
-                "tossMethodId", tossMethodId
-        ));
+        return ApiResponse.success(new BrandpayReadyResponseDto(tossMethodId));
     }
-
-//    @PostMapping("/payments/ready2")
-//    public ResponseEntity<Map<String, String>> readyPayment2(
-//            @RequestHeader("X-User-Id") Long userId,
-//            @RequestBody PaymentReadyRequestDto dto) {
-////        String tossMethodId = paymentConfirmFacade.ready(dto, userId);
-//
-//        return ResponseEntity.ok(Map.of(
-//                "status", "SUCCESS"
-//        ));
-//    }
 
     @PostMapping("/webhooks/toss-brandpay")
     public ResponseEntity<String> handleTossWebhook(
@@ -77,6 +65,7 @@ private final PaymentConfirmFacade paymentConfirmFacade;
     }
 
     @GetMapping("/callback-auth")
+    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true" )
     public ResponseEntity<?> callbackAuth(
             @RequestParam Long userId,
             @RequestParam String customerKey,
@@ -99,16 +88,16 @@ private final PaymentConfirmFacade paymentConfirmFacade;
     }
 
     @PostMapping("/billing-auth/success")
-    public ResponseEntity<?> billingSuccess(
+    public ApiResponse<String> billingSuccess(
             @RequestBody TossBillingChangeStatusRequestDto request) {
         brandpayService.billingAllow(request.customerKey());
-        return ResponseEntity.ok().build();
+        return ApiResponse.success("정기결제 인증 상태가 반영되었습니다.");
     }
 
     @PostMapping("/billing-auth/terminate")
-    public ResponseEntity<String> terminateBillingAuth(@RequestBody TossBillingChangeStatusRequestDto request) {
+    public ApiResponse<String> terminateBillingAuth(@RequestBody TossBillingChangeStatusRequestDto request) {
         brandpayService.terminateBilling(request.customerKey());
-        return ResponseEntity.ok("success");
+        return ApiResponse.success("정기 자동결제가 해지되었습니다.");
     }
 
 

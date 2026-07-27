@@ -1,0 +1,91 @@
+spring:
+  application:
+    name: payment-service
+  config:
+    import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:paymentdb}
+    username: ${POSTGRES_USER:payment_user}
+    password: ${POSTGRES_PASSWORD:payment_pass}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+    defer-datasource-initialization: true
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+feign:
+  order-service:
+    url: localhost:8400
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    hostname: localhost
+    instance-id: ${spring.application.name}:${server.port:8300}:localhost
+
+toss:
+  payments:
+    client-key: ${TOSS_CLIENT_KEY:test_ck_Z61JOxRQVEB4Z5EYoWJwrW0X9bAq}
+    widget-secret-key: ${TOSS_WIDGET_SECRET_KEY:test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6}
+    api-secret-key: ${TOSS_API_SECRET_KEY:test_sk_Poxy1XQL8RPedGKvOOvYV7nO5Wml}
+    redirect-url: ${TOSS_BRANDPAY_REDIRECT_URL:http://localhost:8300/brandpay}
+    base-url: ${TOSS_BASE_URL:https://api.tosspayments.com/v1}
+
+resilience4j:
+  circuit-breaker:
+    instances:
+      brandpayCircuitBreaker:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 3000ms
+
+        waitDurationInOpenState: 20000ms
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+        permittedNumberOfCallsInHalfOpenState: 3
+        maxWaitDurationInHalfOpenState: 15000ms
+
+        recordExceptions:
+          - java.net.SocketTimeoutException
+          - feign.FeignException.InternalServerError
+        ignoreExceptions:
+          - com.bubbletea.payment.global.exception.PaymentSystemException
+          - com.bubbletea.payment.global.exception.PaymentTossApiException
+  retry:
+    instances:
+      billingRetry:
+        max-attempts: 3
+        wait-duration: 1000ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        randomized-wait-factor: 0.5
+        retry-exceptions:
+          - java.net.SocketTimeoutException
+          - feign.FeignException.InternalServerError
+        ignore-exceptions:
+          - com.bubbletea.payment.global.exception.PaymentSystemException
+      cancelRetry:
+        max-attempts: 3
+        wait-duration: 1000ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        randomized-wait-factor: 0.5
+        retry-exceptions:
+          - java.net.SocketTimeoutException
+          - feign.FeignException.InternalServerError
+        ignore-exceptions:
+          - com.bubbletea.payment.global.exception.PaymentSystemException

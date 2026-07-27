@@ -1,19 +1,12 @@
 package com.bubbletea.payment.controller;
 
 import com.bubbletea.common.response.ApiResponse;
-import com.bubbletea.payment.entity.PaymentMethod;
 import com.bubbletea.payment.facade.PaymentCancelFacade;
 import com.bubbletea.payment.facade.PaymentConfirmFacade;
-import com.bubbletea.payment.repository.PaymentMethodRepository;
-import com.bubbletea.payment.service.PaymentService;
 import com.bubbletea.payment.service.dto.PaymentCancelRequestDto;
 import com.bubbletea.payment.service.dto.PaymentConfirmRequestDto;
-import com.bubbletea.payment.service.dto.PaymentReadyRequestDto;
-import jakarta.validation.Valid;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -22,8 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
+@RequestMapping("/api/payments")
 @RequiredArgsConstructor
-@RequestMapping
 public class PaymentController {
 
     private final PaymentConfirmFacade paymentConfirmFacade;
@@ -35,7 +28,7 @@ public class PaymentController {
         return ApiResponse.success(dto.amount() + "원 결제가 완료되었습니다.");
     }
 
-    @PostMapping("/payments/cancel")
+    @PostMapping("/cancel")
     public ApiResponse<String> requestCancel(
             @RequestHeader("X-User-Id") Long userId,
             @RequestBody PaymentCancelRequestDto dto) {

@@ -50,7 +50,14 @@ public class BrandpayService {
                 .map(BrandpayAuthDetailResponseDto.PaymentMethodDto::of)
                 .toList();
 
-        return new BrandpayAuthDetailResponseDto(auth.getUserId(), auth.getCustomerKey(), paymentMethods);
+        return new BrandpayAuthDetailResponseDto(
+                auth.getUserId(),
+                auth.getCustomerKey(),
+                paymentMethods,
+                auth.isBillingAgreed(),
+                null,
+                null
+        );
     }
 
     @Transactional

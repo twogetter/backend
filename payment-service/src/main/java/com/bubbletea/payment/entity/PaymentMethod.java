@@ -72,4 +72,8 @@ public class PaymentMethod extends BaseEntity {
     public void registerBilling() {
         this.type = PaymentMethodType.BILLING;
     }
+
+    public void unregisterBilling() {
+        this.type = PaymentMethodType.NORMAL;
+    }
 }

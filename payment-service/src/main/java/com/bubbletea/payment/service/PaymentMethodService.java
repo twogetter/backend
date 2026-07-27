@@ -32,4 +32,15 @@ public class PaymentMethodService {
         paymentMethod.registerBilling();
     }
 
+    @Transactional
+    public void terminatePaymentMethodBilling(Long paymentMethodId, Long userid) {
+        userBrandpayAuthRepository.findByUserId(userid)
+                .orElseThrow(() -> new AppException(PaymentErrorCode.USER_BRANDPAY_AUTH_NOT_FOUND));
+
+        PaymentMethod paymentMethod = paymentMethodRepository.findByIdAndUserBrandpayAuth_UserId(paymentMethodId, userid)
+                .orElseThrow(() -> new AppException(PaymentErrorCode.PAYMENT_METHOD_NOT_FOUND));
+
+        paymentMethod.unregisterBilling();
+    }
+
 }

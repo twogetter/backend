@@ -32,12 +32,12 @@ spring:
             - id: payment-service
               uri: lb://PAYMENT-SERVICE
               predicates:
-                - Path=/api/payments/**
+                - Path=/api/payments/**, /brandpay/**, /api/payment-methods/**
 
             - id: order-service
               uri: lb://ORDER-SERVICE
               predicates:
-                - Path=/api/orders/**
+                - Path=/api/orders/**, /api/v1/orders/**
 
             - id: notification-service
               uri: lb://NOTIFICATION-SERVICE
