@@ -1,16 +1,20 @@
 package com.bubbletea.order.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.bubbletea.common.exception.AppException;
 import com.bubbletea.order.domain.dto.CreatedOrderContextDto;
 import com.bubbletea.order.domain.entity.IdempotencyKey;
 import com.bubbletea.order.domain.enums.OrderStatus;
+import com.bubbletea.order.domain.exception.OrderErrorCode;
 import com.bubbletea.order.domain.repository.IdempotencyKeyRepository;
+import com.bubbletea.order.domain.repository.SubscriptionRepository;
 import com.bubbletea.order.infrastructure.client.MemberClient;
 import com.bubbletea.order.infrastructure.client.ProductClient;
 import com.bubbletea.order.infrastructure.client.dto.ProductInfoResponseDto;
@@ -43,9 +47,18 @@ class SubscriptionOrderFacadeTest {
   private OrderCreationService orderCreationService;
   @Mock
   private IdempotencyKeyRepository idempotencyKeyRepository;
+  @Mock
+  private SubscriptionRepository subscriptionRepository;
 
   @InjectMocks
   private SubscriptionOrderFacade facade;
+
+  /** 중복 구독 선검사를 "점유 없음"으로 통과시킨다. */
+  private void stubNotOccupied() {
+    when(subscriptionRepository
+        .existsByMemberIdAndProductIdAndStatusIn(eq(MEMBER_ID), eq(PRODUCT_ID), any()))
+        .thenReturn(false);
+  }
 
   private SubscriptionCreateRequestDto request() {
     return new SubscriptionCreateRequestDto(PRODUCT_ID, METHOD_ID);
@@ -80,6 +93,7 @@ class SubscriptionOrderFacadeTest {
   void createsNewSubscription() {
     when(idempotencyKeyRepository.findByMemberIdAndIdempotencyKey(MEMBER_ID, IDEMPOTENCY_KEY))
         .thenReturn(Optional.empty());
+    stubNotOccupied();
     ProductInfoResponseDto product = product();
     when(productClient.getProductInfo(PRODUCT_ID)).thenReturn(product);
     when(orderCreationService.createPendingOrder(MEMBER_ID, product, METHOD_ID, IDEMPOTENCY_KEY))
@@ -96,12 +110,31 @@ class SubscriptionOrderFacadeTest {
   }
 
   @Test
+  @DisplayName("이미 점유 중인 상품이면 외부 호출 없이 409(DUPLICATE_SUBSCRIPTION)로 거절한다")
+  void rejectsDuplicateSubscription() {
+    when(idempotencyKeyRepository.findByMemberIdAndIdempotencyKey(MEMBER_ID, IDEMPOTENCY_KEY))
+        .thenReturn(Optional.empty());
+    when(subscriptionRepository
+        .existsByMemberIdAndProductIdAndStatusIn(eq(MEMBER_ID), eq(PRODUCT_ID), any()))
+        .thenReturn(true);
+
+    assertThatThrownBy(() -> facade.createSubscription(MEMBER_ID, IDEMPOTENCY_KEY, request()))
+        .isInstanceOf(AppException.class)
+        .satisfies(e -> assertThat(((AppException) e).getErrorCode())
+            .isEqualTo(OrderErrorCode.DUPLICATE_SUBSCRIPTION));
+
+    // 선검사가 외부 호출보다 앞에 있어야 불필요한 Feign 왕복이 없다
+    verifyNoInteractions(memberClient, productClient, orderCreationService);
+  }
+
+  @Test
   @DisplayName("동시 중복 요청으로 유니크 제약 위반 시 기존 주문을 반환한다")
   void returnsExistingOnDataIntegrityViolation() {
     IdempotencyKey existing = new IdempotencyKey(MEMBER_ID, IDEMPOTENCY_KEY, 100L, 200L);
     when(idempotencyKeyRepository.findByMemberIdAndIdempotencyKey(MEMBER_ID, IDEMPOTENCY_KEY))
         .thenReturn(Optional.empty())      // fast-path 통과
         .thenReturn(Optional.of(existing)); // 커밋 경쟁 후 재조회
+    stubNotOccupied();
     when(productClient.getProductInfo(PRODUCT_ID)).thenReturn(product());
     when(orderCreationService.createPendingOrder(any(), any(), any(), any()))
         .thenThrow(new DataIntegrityViolationException("duplicate key"));

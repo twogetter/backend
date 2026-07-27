@@ -2,7 +2,9 @@ package com.bubbletea.order.infrastructure.kafka;
 
 public class OrderKafkaTopic {
 
-  public static final String RENEWAL_SUBSCRIPTION = "notification.order.subscriptionRenewal";
+  // 정기결제 임박 알림. notification-service 소비자(KafkaTopicConfig.SUBSCRIBE_RENEWAL_TOPIC)와
+  // 토픽명을 일치시킨다.
+  public static final String RENEWAL_SUBSCRIPTION = "notification.order.subscribeRenewal";
 
   // 신규 구독 활성화 시 채팅방 팬 입장을 위해 chat-service 로 발행.
   // chat-service 소비자(ChatKafkaTopics.ORDER_CREATED)와 토픽/페이로드를 일치시킨다.
