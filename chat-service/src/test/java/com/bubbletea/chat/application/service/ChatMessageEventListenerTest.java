@@ -1,102 +1,130 @@
 package com.bubbletea.chat.application.service;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import com.bubbletea.chat.application.dto.ChatMessageResponseDto;
-import com.bubbletea.chat.domain.entity.ChatMessage;
 import com.bubbletea.chat.domain.entity.ChatParticipant;
+import com.bubbletea.chat.domain.entity.ChatRoom;
 import com.bubbletea.chat.domain.enums.MessageType;
 import com.bubbletea.chat.domain.enums.ParticipantRole;
 import com.bubbletea.chat.domain.enums.ParticipantStatus;
-import com.bubbletea.chat.domain.event.ChatMessageSavedEvent;
-import com.bubbletea.chat.domain.event.ChatPublishedEvent;
 import com.bubbletea.chat.domain.repository.ChatParticipantRepository;
+import com.bubbletea.chat.domain.repository.ChatRoomRepository;
 import com.bubbletea.chat.infrastructure.kafka.producer.ChatEventPublisher;
-import java.time.LocalDateTime;
-import java.util.List;
+import com.bubbletea.chat.presentation.controller.dto.ChatMessageCreateRequestDto;
+import com.bubbletea.chat.support.ChatIntegrationTestSupport;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@ExtendWith(MockitoExtension.class)
-class ChatMessageEventListenerTest {
+class ChatMessageEventListenerTest extends ChatIntegrationTestSupport {
 
-  @Mock
-  private SimpMessagingTemplate messagingTemplate;
+  @Autowired
+  private ChatMessageService chatMessageService;
 
-  @Mock
+  @Autowired
+  private ChatRoomRepository chatRoomRepository;
+
+  @Autowired
   private ChatParticipantRepository chatParticipantRepository;
 
-  @Mock
+  @Autowired
+  private com.bubbletea.chat.domain.repository.ChatMessageRepository chatMessageRepository;
+
+  @MockitoBean
+  private SimpMessagingTemplate messagingTemplate;
+
+  @MockitoBean
   private ChatEventPublisher chatEventPublisher;
 
-  @InjectMocks
-  private ChatMessageEventListener chatMessageEventListener;
+  private ChatRoom chatRoom;
 
-  @Test
-  @DisplayName("아티스트 메시지 저장 이벤트 수신 시 팬 브로드캐스트 및 Kafka 이벤트가 발행된다")
-  void handleMessageSaved_Artist_Success() {
-    // given
-    Long roomId = 1L;
-    ChatMessage mockMessage = ChatMessage.builder()
-        .roomId(roomId)
-        .senderId(10L)
-        .senderType(ParticipantRole.ARTIST)
-        .content("여러분")
-        .messageType(MessageType.TEXT)
-        .build();
-    org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "id", 100L);
-    org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "createdAt",
-        LocalDateTime.now());
+  @BeforeEach
+  void setUp() {
+    chatRoom = chatRoomRepository.save(ChatRoom.create(1L));
 
-    ChatMessageSavedEvent savedEvent = new ChatMessageSavedEvent(mockMessage,
-        ParticipantRole.ARTIST, "아이돌");
-    ChatParticipant fanParticipant = ChatParticipant.createFanParticipant(roomId, 20L);
+    chatParticipantRepository.save(ChatParticipant.builder()
+        .roomId(chatRoom.getId())
+        .userId(1L)
+        .role(ParticipantRole.ARTIST)
+        .status(ParticipantStatus.ACTIVE)
+        .lastReadId(0L)
+        .build());
 
-    when(chatParticipantRepository.findAllByRoomIdAndStatus(roomId, ParticipantStatus.ACTIVE))
-        .thenReturn(List.of(fanParticipant));
+    chatParticipantRepository.save(ChatParticipant.builder()
+        .roomId(chatRoom.getId())
+        .userId(2L)
+        .role(ParticipantRole.FAN)
+        .status(ParticipantStatus.ACTIVE)
+        .lastReadId(0L)
+        .build());
+  }
 
-    // when
-    chatMessageEventListener.handleMessageSaved(savedEvent);
-
-    // then
-    verify(messagingTemplate, times(1)).convertAndSend(eq("/sub/rooms/1/artist"),
-        any(ChatMessageResponseDto.class));
-    verify(chatEventPublisher, times(1)).publish(any(ChatPublishedEvent.class));
+  @AfterEach
+  void tearDown() {
+    chatMessageRepository.deleteAllInBatch();
+    chatParticipantRepository.deleteAllInBatch();
+    chatRoomRepository.deleteAllInBatch();
   }
 
   @Test
-  @DisplayName("팬 메시지 저장 이벤트 수신 시 아티스트 대역으로 전송된다")
-  void handleMessageSaved_Fan_Success() {
+  @DisplayName("아티스트가 메시지를 전송하면 웹소켓 아티스트 채널과 카프카로 팬들에게 이벤트가 발행된다")
+  void handleMessageSaved_ByArtist() {
     // given
-    Long roomId = 1L;
-    ChatMessage mockMessage = ChatMessage.builder()
-        .roomId(roomId)
-        .senderId(20L)
-        .senderType(ParticipantRole.FAN)
-        .content("팬 메시지")
-        .messageType(MessageType.TEXT)
-        .build();
-    org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "id", 101L);
-    org.springframework.test.util.ReflectionTestUtils.setField(mockMessage, "createdAt",
-        LocalDateTime.now());
-
-    ChatMessageSavedEvent savedEvent = new ChatMessageSavedEvent(mockMessage, ParticipantRole.FAN,
-        "팬");
+    Long artistUserId = 1L;
+    ParticipantRole role = ParticipantRole.ARTIST;
+    ChatMessageCreateRequestDto requestDto = new ChatMessageCreateRequestDto(
+        "여러분",
+        MessageType.TEXT
+    );
 
     // when
-    chatMessageEventListener.handleMessageSaved(savedEvent);
+    chatMessageService.save(chatRoom.getId(), artistUserId, role, requestDto);
 
     // then
-    verify(messagingTemplate, times(1)).convertAndSend(eq("/sub/rooms/1/fan"),
-        any(ChatMessageResponseDto.class));
+    verify(messagingTemplate).convertAndSend(
+        eq("/sub/rooms/" + chatRoom.getId() + "/artist"),
+        any(Object.class)
+    );
+
+    verify(chatEventPublisher).publish(argThat(event ->
+        event.memberId().equals(2L) &&
+            event.message().equals("여러분")
+    ));
+  }
+
+  @Test
+  @DisplayName("팬이 메시지를 전송하면 웹소켓 팬 채널로만 브로드캐스트되고 카프카 이벤트는 발행되지 않는다")
+  void handleMessageSaved_ByFan() {
+    // given
+    Long fanUserId = 2L;
+    ParticipantRole role = ParticipantRole.FAN;
+    ChatMessageCreateRequestDto requestDto = new ChatMessageCreateRequestDto(
+        "팬 메시지",
+        MessageType.TEXT
+    );
+
+    // when
+    chatMessageService.save(chatRoom.getId(), fanUserId, role, requestDto);
+
+    // then
+    verify(messagingTemplate).convertAndSend(
+        eq("/sub/rooms/" + chatRoom.getId() + "/fan"),
+        any(Object.class)
+    );
+
+    verify(messagingTemplate, never()).convertAndSend(
+        eq("/sub/rooms/" + chatRoom.getId() + "/artist"),
+        any(Object.class)
+    );
+    
+    verify(chatEventPublisher, never()).publish(any());
   }
 }
