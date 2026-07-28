@@ -11,11 +11,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.bubbletea.order.domain.entity.OutboxEvent;
 import com.bubbletea.order.domain.entity.SubscriptionOrder;
+import com.bubbletea.order.domain.enums.AttemptStatus;
 import com.bubbletea.order.domain.enums.OrderStatus;
 import com.bubbletea.order.domain.enums.OutboxStatus;
 import com.bubbletea.order.domain.enums.SubscriptionStatus;
 import com.bubbletea.order.domain.event.PaymentResultEvent;
+import com.bubbletea.order.domain.exception.OrderErrorCode;
 import com.bubbletea.order.domain.repository.IdempotencyKeyRepository;
+import com.bubbletea.order.domain.repository.PaymentAttemptRepository;
 import com.bubbletea.order.domain.repository.SubscriptionOrderRepository;
 import com.bubbletea.order.domain.repository.SubscriptionRepository;
 import com.bubbletea.order.infrastructure.kafka.OrderKafkaTopic;
@@ -33,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -63,6 +67,10 @@ class SubscriptionOrderIntegrationTest extends OrderIntegrationTestSupport {
   private IdempotencyKeyRepository idempotencyKeyRepository;
   @Autowired
   private OutboxEventRepository outboxEventRepository;
+  @Autowired
+  private PaymentAttemptRepository paymentAttemptRepository;
+  @Autowired
+  private JdbcTemplate jdbcTemplate;
 
   @Test
   @DisplayName("정상 요청: 회원·상품 검증 후 주문을 PENDING 으로 접수(202)하고 결제요청 이벤트를 아웃박스에 적재한다")
@@ -261,7 +269,152 @@ class SubscriptionOrderIntegrationTest extends OrderIntegrationTestSupport {
         });
   }
 
+  @Test
+  @DisplayName("IT5 결제 실패 소비: 신규 구독은 소프트 삭제로 보상되고 실패 알림 이벤트가 적재된다")
+  void consumePaymentFailure_compensatesNewSubscription() throws Exception {
+    stubMemberValid(MEMBER_ID);
+    stubProduct(PRODUCT_ID, "아이유 구독권", 9900L, "ACTIVE", PRODUCT_ID);
+
+    MvcResult created = mockMvc.perform(post(URL)
+            .header("X-User-Id", MEMBER_ID)
+            .header("Idempotency-Key", "idem-fail-1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body(PRODUCT_ID, METHOD_ID)))
+        .andExpect(status().isAccepted())
+        .andReturn();
+    long orderId = orderId(created);
+
+    kafkaTemplate.send(OrderKafkaTopic.PAYMENT_RESULT_FAILED, String.valueOf(orderId),
+        new PaymentResultEvent(orderId, 999L, BigDecimal.valueOf(9900), "",
+            PaymentResultEvent.STATUS_FAILED, "카드 한도 초과"));
+
+    // 소프트 삭제되면 @SQLRestriction 으로 일반 조회에서 빠진다
+    await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
+      assertThat(subscriptionRepository.count()).isZero();
+      assertThat(subscriptionOrderRepository.count()).isZero();
+    });
+
+    // 실패 사유는 PaymentAttempt 에 남는다(소프트 삭제 대상이 아니므로 조회된다)
+    assertThat(paymentAttemptRepository.findAll())
+        .singleElement()
+        .satisfies(a -> {
+          assertThat(a.getStatus()).isEqualTo(AttemptStatus.FAIL);
+          assertThat(a.getFailReason()).isEqualTo("카드 한도 초과");
+        });
+
+    // 실패 알림 이벤트가 아웃박스에 적재
+    assertThat(outboxEventRepository.findTop100ByStatusOrderByIdAsc(OutboxStatus.PENDING))
+        .anySatisfy(e -> {
+          assertThat(e.getTopic()).isEqualTo(OrderKafkaTopic.PAYMENT_FAILED);
+          assertThat(e.getEventType()).isEqualTo("PaymentFailed");
+        });
+
+    // 실제로 지워진 게 아니라 deleted_at 이 채워졌을 뿐임을 확인(이력·감사 보존)
+    assertThat(countRows("subscriptions")).isEqualTo(1);
+    assertThat(countRows("subscription_order")).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("IT6 회원 없음: user-service 404 이면 상품 조회조차 하지 않고 실패한다")
+  void createSubscription_memberNotFound() {
+    stubMemberNotFound(MEMBER_ID);
+    stubProduct(PRODUCT_ID, "아이유 구독권", 9900L, "ACTIVE", PRODUCT_ID);
+
+    assertThatThrownBy(() ->
+        mockMvc.perform(post(URL)
+            .header("X-User-Id", MEMBER_ID)
+            .header("Idempotency-Key", "idem-nomember-1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body(PRODUCT_ID, METHOD_ID))))
+        .hasRootCauseInstanceOf(FeignException.class);
+
+    // 회원 검증이 먼저이므로 product 는 호출되지 않아야 한다(불필요한 왕복 방지)
+    WIREMOCK.verify(0, getRequestedFor(urlEqualTo("/api/v1/products/" + PRODUCT_ID + "/validation")));
+
+    assertThat(subscriptionRepository.count()).isZero();
+    assertThat(subscriptionOrderRepository.count()).isZero();
+    assertThat(idempotencyKeyRepository.count()).isZero();
+    assertThat(outboxEventRepository.count()).isZero();
+  }
+
+  @Test
+  @DisplayName("IT7 결제 보류(UNKNOWN): 주문이 PENDING 으로 남아 이후 확정 이벤트를 받을 수 있다")
+  void consumePaymentHold_keepsOrderPending() throws Exception {
+    stubMemberValid(MEMBER_ID);
+    stubProduct(PRODUCT_ID, "아이유 구독권", 9900L, "ACTIVE", PRODUCT_ID);
+
+    MvcResult created = mockMvc.perform(post(URL)
+            .header("X-User-Id", MEMBER_ID)
+            .header("Idempotency-Key", "idem-hold-1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body(PRODUCT_ID, METHOD_ID)))
+        .andExpect(status().isAccepted())
+        .andReturn();
+    long orderId = orderId(created);
+    long subscriptionId = subscriptionId(created);
+
+    kafkaTemplate.send(OrderKafkaTopic.PAYMENT_RESULT_HOLD, String.valueOf(orderId),
+        new PaymentResultEvent(orderId, 999L, BigDecimal.valueOf(9900), "",
+            PaymentResultEvent.STATUS_UNKNOWN, "토스 응답 없음"));
+
+    // 보류는 상태를 건드리지 않는다. 소비 시간을 준 뒤에도 PENDING 유지.
+    await().pollDelay(Duration.ofSeconds(3)).atMost(Duration.ofSeconds(20))
+        .pollInterval(Duration.ofMillis(500)).untilAsserted(() ->
+            assertThat(subscriptionOrderRepository.findById(orderId))
+                .get()
+                .satisfies((SubscriptionOrder o) ->
+                    assertThat(o.getStatus()).isEqualTo(OrderStatus.PENDING)));
+    assertThat(paymentAttemptRepository.count()).isZero();
+
+    // 확정 이벤트가 뒤늦게 도착하면 그때 처리된다.
+    // (보류가 상태를 바꿨다면 PENDING 가드에 걸려 이 성공 이벤트가 스킵됐을 것)
+    kafkaTemplate.send(OrderKafkaTopic.PAYMENT_RESULT_SUCCESS, String.valueOf(orderId),
+        new PaymentResultEvent(orderId, 999L, BigDecimal.valueOf(9900), "test-payment-key",
+            PaymentResultEvent.STATUS_SUCCEEDED, ""));
+
+    await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(500)).untilAsserted(() ->
+        assertThat(subscriptionRepository.findById(subscriptionId))
+            .get()
+            .satisfies(s -> assertThat(s.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE)));
+  }
+
+  @Test
+  @DisplayName("IT9-a 유효성: Idempotency-Key 가 비면 400(ORDER_004)으로 거절한다")
+  void createSubscription_blankIdempotencyKey() throws Exception {
+    mockMvc.perform(post(URL)
+            .header("X-User-Id", MEMBER_ID)
+            .header("Idempotency-Key", " ")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body(PRODUCT_ID, METHOD_ID)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value(OrderErrorCode.INVALID_REQUEST.getCode()));
+
+    assertThat(subscriptionRepository.count()).isZero();
+    assertThat(outboxEventRepository.count()).isZero();
+  }
+
+  @Test
+  @DisplayName("IT9-b 유효성: 바디의 productId 가 음수면 400 이며 외부 호출도 나가지 않는다")
+  void createSubscription_invalidBody() throws Exception {
+    mockMvc.perform(post(URL)
+            .header("X-User-Id", MEMBER_ID)
+            .header("Idempotency-Key", "idem-invalid-1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body(-1L, METHOD_ID)))
+        .andExpect(status().isBadRequest());
+
+    // @Valid 는 컨트롤러 진입 시점에 걸리므로 파사드·Feign 은 실행되지 않는다
+    WIREMOCK.verify(0, getRequestedFor(urlEqualTo("/internal/members/" + MEMBER_ID)));
+    assertThat(subscriptionRepository.count()).isZero();
+    assertThat(idempotencyKeyRepository.count()).isZero();
+  }
+
   // ── helpers ──
+
+  /** 소프트 삭제 여부와 무관한 물리 행 수(@SQLRestriction 을 우회). */
+  private int countRows(String table) {
+    return jdbcTemplate.queryForObject("SELECT count(*) FROM " + table, Integer.class);
+  }
 
   private String body(long productId, long methodId) {
     return """
